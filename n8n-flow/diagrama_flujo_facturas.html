@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flujo de Automatizacion - Gestion de Facturas | InmoLawyer</title>
+    <style>
+        :root {
+            --trigger: #4CAF50;
+            --logic: #FF9800;
+            --data: #2196F3;
+            --ai: #9C27B0;
+            --excel: #1B5E20;
+            --sharepoint: #0078D4;
+            --email: #FFC107;
+            --code: #FF5722;
+            --edit: #607D8B;
+            --bg: #FAFBFC;
+            --card-bg: #FFFFFF;
+            --text: #1a1a2e;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
+            --shadow-lg: 0 10px 40px rgba(0,0,0,0.08), 0 2px 8px rgba(0,0,0,0.04);
+            --radius: 12px;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* HEADER */
+        .header {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            color: white;
+            padding: 48px 32px 40px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+            pointer-events: none;
+        }
+        .header-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.15);
+            padding: 6px 16px;
+            border-radius: 100px;
+            font-size: 13px;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+            margin-bottom: 20px;
+            color: rgba(255,255,255,0.9);
+        }
+        .header-badge .dot {
+            width: 8px; height: 8px;
+            background: #4CAF50;
+            border-radius: 50%;
+            animation: pulse-dot 2s ease-in-out infinite;
+        }
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(0.8); }
+        }
+        .header h1 {
+            font-size: clamp(28px, 4vw, 42px);
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            margin-bottom: 8px;
+            position: relative;
+        }
+        .header .subtitle {
+            font-size: clamp(14px, 2vw, 18px);
+            color: rgba(255,255,255,0.7);
+            font-weight: 400;
+            position: relative;
+        }
+
+        /* SUMMARY */
+        .summary-section {
+            max-width: 1200px;
+            margin: -24px auto 0;
+            padding: 0 24px;
+            position: relative;
+            z-index: 2;
+        }
+        .summary-box {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 28px 32px;
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--border);
+        }
+        .summary-box h3 {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .summary-box h3 .icon-circle {
+            width: 28px; height: 28px;
+            background: linear-gradient(135deg, #e0f2fe, #bae6fd);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+        .summary-steps {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+        }
+        .summary-step {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 12px 14px;
+            background: #f8fafc;
+            border-radius: 8px;
+            border: 1px solid #f1f5f9;
+            transition: all 0.2s ease;
+        }
+        .summary-step:hover {
+            background: #f1f5f9;
+            border-color: #e2e8f0;
+            transform: translateY(-1px);
+        }
+        .step-num {
+            width: 24px; height: 24px;
+            min-width: 24px;
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            color: white;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 700;
+        }
+        .step-text {
+            font-size: 13px;
+            color: var(--text-muted);
+            line-height: 1.4;
+        }
+
+        /* WORKFLOW SECTIONS */
+        .workflows-container {
+            max-width: 1200px;
+            margin: 32px auto;
+            padding: 0 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 32px;
+        }
+        .workflow-section {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            overflow: hidden;
+            transition: box-shadow 0.3s ease;
+        }
+        .workflow-section:hover {
+            box-shadow: var(--shadow-lg);
+        }
+        .workflow-header {
+            padding: 20px 28px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+        .workflow-number {
+            width: 36px; height: 36px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 16px;
+            color: white;
+            flex-shrink: 0;
+        }
+        .wf1 .workflow-number { background: linear-gradient(135deg, #4CAF50, #2E7D32); }
+        .wf2 .workflow-number { background: linear-gradient(135deg, #2196F3, #1565C0); }
+        .wf3 .workflow-number { background: linear-gradient(135deg, #FF9800, #E65100); }
+        .workflow-title-group h2 {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text);
+            line-height: 1.3;
+        }
+        .workflow-title-group p {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+        .workflow-body {
+            padding: 32px 28px;
+            overflow-x: auto;
+        }
+
+        /* FLOW DIAGRAM */
+        .flow-vertical {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0;
+        }
+
+        /* NODES */
+        .node {
+            position: relative;
+            min-width: 180px;
+            max-width: 260px;
+            padding: 14px 18px;
+            border-radius: 12px;
+            background: white;
+            border: 2px solid;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 1;
+        }
+        .node:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+            z-index: 10;
+        }
+        .node:hover .node-tooltip {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(-50%) translateY(0);
+        }
+        .node-icon {
+            font-size: 22px;
+            margin-bottom: 6px;
+            display: block;
+        }
+        .node-label {
+            font-size: 12px;
+            font-weight: 700;
+            line-height: 1.3;
+            margin-bottom: 2px;
+        }
+        .node-sublabel {
+            font-size: 10px;
+            color: var(--text-muted);
+            line-height: 1.3;
+        }
+        .node-tooltip {
+            position: absolute;
+            bottom: calc(100% + 12px);
+            left: 50%;
+            transform: translateX(-50%) translateY(4px);
+            background: #1a1a2e;
+            color: white;
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 11px;
+            line-height: 1.5;
+            white-space: normal;
+            width: 240px;
+            text-align: left;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.2s ease;
+            z-index: 100;
+            pointer-events: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        .node-tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 6px solid transparent;
+            border-top-color: #1a1a2e;
+        }
+
+        /* Node variants */
+        .node-trigger { border-color: var(--trigger); background: linear-gradient(180deg, #f0fdf4, #ffffff); }
+        .node-trigger .node-label { color: #166534; }
+        .node-logic {
+            border-color: var(--logic);
+            background: linear-gradient(180deg, #fff7ed, #ffffff);
+            border-radius: 12px;
+            clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+            padding: 30px 28px;
+            min-width: 160px;
+        }
+        .node-logic .node-label { color: #9a3412; }
+        .node-logic:hover { transform: translateY(-3px); }
+        .node-data { border-color: var(--data); background: linear-gradient(180deg, #eff6ff, #ffffff); }
+        .node-data .node-label { color: #1e40af; }
+        .node-ai { border-color: var(--ai); background: linear-gradient(180deg, #faf5ff, #ffffff); }
+        .node-ai .node-label { color: #6b21a8; }
+        .node-excel { border-color: var(--excel); background: linear-gradient(180deg, #f0fdf4, #ffffff); }
+        .node-excel .node-label { color: #14532d; }
+        .node-sharepoint { border-color: var(--sharepoint); background: linear-gradient(180deg, #eff6ff, #ffffff); }
+        .node-sharepoint .node-label { color: #0c4a6e; }
+        .node-email { border-color: var(--email); background: linear-gradient(180deg, #fefce8, #ffffff); }
+        .node-email .node-label { color: #854d0e; }
+        .node-code { border-color: var(--code); background: linear-gradient(180deg, #fef2f2, #ffffff); }
+        .node-code .node-label { color: #991b1b; }
+        .node-edit { border-color: var(--edit); background: linear-gradient(180deg, #f8fafc, #ffffff); }
+        .node-edit .node-label { color: #374151; }
+
+        /* Trigger pulse */
+        .node-trigger::before {
+            content: '';
+            position: absolute;
+            top: -4px; left: -4px; right: -4px; bottom: -4px;
+            border-radius: 14px;
+            border: 2px solid var(--trigger);
+            opacity: 0;
+            animation: node-pulse 3s ease-in-out infinite;
+        }
+        @keyframes node-pulse {
+            0%, 100% { opacity: 0; transform: scale(1); }
+            50% { opacity: 0.3; transform: scale(1.02); }
+        }
+
+        /* CONNECTORS */
+        .connector-down {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 40px;
+            position: relative;
+            z-index: 0;
+        }
+        .connector-down .line {
+            width: 2px;
+            flex: 1;
+            background: #cbd5e1;
+        }
+        .connector-down .arrow {
+            width: 0; height: 0;
+            border-left: 6px solid transparent;
+            border-right: 6px solid transparent;
+            border-top: 8px solid #94a3b8;
+        }
+        .connector-down .branch-label {
+            position: absolute;
+            left: calc(50% + 10px);
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 10px;
+            font-weight: 600;
+            color: #94a3b8;
+            white-space: nowrap;
+            background: var(--card-bg);
+            padding: 1px 6px;
+            border-radius: 4px;
+        }
+
+        /* PARALLEL BRANCH */
+        .parallel-container {
+            display: flex;
+            justify-content: center;
+            gap: 48px;
+            position: relative;
+        }
+        .parallel-branch {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* LEGEND */
+        .legend-section {
+            max-width: 1200px;
+            margin: 0 auto 48px;
+            padding: 0 24px;
+        }
+        .legend-box {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            padding: 24px 28px;
+        }
+        .legend-box h3 {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 16px;
+        }
+        .legend-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 10px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+        .legend-color {
+            width: 16px; height: 16px;
+            border-radius: 4px;
+            flex-shrink: 0;
+            border: 1px solid rgba(0,0,0,0.1);
+        }
+        .legend-diamond {
+            width: 14px; height: 14px;
+            border-radius: 2px;
+            flex-shrink: 0;
+            transform: rotate(45deg);
+            border: 1px solid rgba(0,0,0,0.1);
+            margin: 0 1px;
+        }
+
+        /* FOOTER */
+        .footer {
+            text-align: center;
+            padding: 24px;
+            font-size: 12px;
+            color: var(--text-muted);
+            border-top: 1px solid var(--border);
+        }
+
+        /* RESPONSIVE */
+        @media (max-width: 768px) {
+            .header { padding: 32px 20px 28px; }
+            .summary-steps { grid-template-columns: 1fr; }
+            .workflow-body { padding: 20px 16px; }
+            .parallel-container { flex-direction: column; gap: 16px; align-items: center; }
+            .node { min-width: 150px; max-width: 220px; }
+            .node-logic { padding: 24px 22px; min-width: 130px; }
+        }
+
+        /* ANIMATIONS */
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(16px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .workflow-section {
+            animation: fadeInUp 0.5s ease-out backwards;
+        }
+        .workflow-section:nth-child(1) { animation-delay: 0.1s; }
+        .workflow-section:nth-child(2) { animation-delay: 0.2s; }
+        .workflow-section:nth-child(3) { animation-delay: 0.3s; }
+
+        @media print {
+            .header { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .node:hover { transform: none; box-shadow: none; }
+            .node-tooltip { display: none !important; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- HEADER -->
+    <div class="header">
+        <div class="header-badge">
+            <span class="dot"></span>
+            Automatizacion Activa
+        </div>
+        <h1>Flujo de Automatizacion &mdash; Gestion de Facturas</h1>
+        <p class="subtitle">Arquitectura n8n para InmoLawyer</p>
+    </div>
+
+    <!-- SUMMARY -->
+    <div class="summary-section">
+        <div class="summary-box">
+            <h3><span class="icon-circle">&#9889;</span> Resumen del Sistema de Automatizacion</h3>
+            <div class="summary-steps">
+                <div class="summary-step">
+                    <span class="step-num">1</span>
+                    <span class="step-text">Captura de facturas desde Microsoft Outlook de forma automatica</span>
+                </div>
+                <div class="summary-step">
+                    <span class="step-num">2</span>
+                    <span class="step-text">Extraccion de datos estructurados con Claude AI</span>
+                </div>
+                <div class="summary-step">
+                    <span class="step-num">3</span>
+                    <span class="step-text">Registro automatico en Excel / OneDrive y SharePoint</span>
+                </div>
+                <div class="summary-step">
+                    <span class="step-num">4</span>
+                    <span class="step-text">Verificacion periodica de pagos en SharePoint</span>
+                </div>
+                <div class="summary-step">
+                    <span class="step-num">5</span>
+                    <span class="step-text">Dashboard comparativo mensual con metricas clave</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- WORKFLOWS -->
+    <div class="workflows-container">
+
+        <!-- ===== WORKFLOW 1 ===== -->
+        <div class="workflow-section wf1">
+            <div class="workflow-header">
+                <div class="workflow-number">1</div>
+                <div class="workflow-title-group">
+                    <h2>Captura Automatica de Facturas</h2>
+                    <p>Recepcion, extraccion y registro automatizado de facturas PDF</p>
+                </div>
+            </div>
+            <div class="workflow-body">
+                <div class="flow-vertical">
+
+                    <!-- N1: Outlook Trigger -->
+                    <div class="node node-trigger">
+                        <span class="node-icon">&#128231;</span>
+                        <div class="node-label">Microsoft Outlook Trigger</div>
+                        <div class="node-sublabel">Detecta emails con facturas</div>
+                        <div class="node-tooltip">
+                            <strong>Configuracion:</strong><br>
+                            &#8226; Evento: Nuevo email recibido<br>
+                            &#8226; Filtro: hasAttachments = true<br>
+                            &#8226; Filtro de remitente para 5 proveedores autorizados
+                        </div>
+                    </div>
+
+                    <div class="connector-down"><div class="line"></div><div class="arrow"></div></div>
+
+                    <!-- N2: IF PDF -->
+                    <div class="node node-logic">
+                        <span class="node-icon">&#9670;</span>
+                        <div class="node-label">Tiene Adjunto PDF?</div>
+                        <div class="node-sublabel">Verifica formato</div>
+                        <div class="node-tooltip">
+                            <strong>Condicion:</strong><br>
+                            &#8226; Verifica que el adjunto sea de tipo PDF<br>
+                            &#8226; Rama verdadera: continua el flujo<br>
+                            &#8226; Rama falsa: se descarta el email
+                        </div>
+                    </div>
+
+                    <div class="connector-down"><div class="line"></div><div class="arrow"></div><span class="branch-label">&#10004; true</span></div>
+
+                    <!-- N3: Extract -->
+                    <div class="node node-data">
+                        <span class="node-icon">&#128196;</span>
+                        <div class="node-label">Extract from File</div>
+                        <div class="node-sublabel">Extrae texto del PDF</div>
+                        <div class="node-tooltip">
+                            <strong>Operacion:</strong> Extract From PDF<br>
+                            &#8226; Lee el contenido textual del archivo PDF adjunto<br>
+                            &#8226; Prepara los datos para el procesamiento con IA
+                        </div>
+                    </div>
+
+                    <div class="connector-down"><div class="line"></div><div class="arrow"></div></div>
+
+                    <!-- N4: Claude AI -->
+                    <div class="node node-ai">
+                        <span class="node-icon">&#129302;</span>
+                        <div class="node-label">Information Extractor (Claude AI)</div>
+                        <div class="node-sublabel">Extrae datos estructurados</div>
+                        <div class="node-tooltip">
+                            <strong>Datos que extrae:</strong><br>
+                            &#8226; N&#176; de Factura<br>
+                            &#8226; Nombre del Proveedor<br>
+                            &#8226; Monto total<br>
+                            &#8226; Fecha de emision<br>
+                            &#8226; Fecha de vencimiento
+                        </div>
+                    </div>
+
+                    <div class="connector-down"><div class="line"></div><div class="arrow"></div></div>
+
+                    <!-- N5: Edit Fields -->
+                    <div class="node node-edit">
+                        <span class="node-icon">&#9998;</span>
+                        <div class="node-label">Edit Fields (Set)</div>
+                        <div class="node-sublabel">Normaliza y estructura datos</div>
+                        <div class="node-tooltip">
+                            <strong>Funcion:</strong><br>
+                            &#8226; Normaliza formatos de fecha<br>
+                            &#8226; Estandariza nombres de proveedores<br>
+                            &#8226; Formatea montos correctamente<br>
+                            &#8226; Estructura datos para Excel
+                        </div>
+                    </div>
+
+                    <div class="connector-down"><div class="line"></div><div class="arrow"></div></div>
+
+                    <!-- N6: Excel 365 -->
+                    <div class="node node-excel">
+                        <span class="node-icon">&#128202;</span>
+                        <div class="node-label">Microsoft Excel 365</div>
+                        <div class="node-sublabel">Agrega fila al registro</div>
+                        <div class="node-tooltip">
+                            <strong>Operacion:</strong> Append (Tabla)<br>
+                            &#8226; Recurso: Tabla en OneDrive<br>
+                            &#8226; Agrega nueva fila con datos de la factura<br>
+                            &#8226; Columnas: N&#176; Factura, Proveedor, Monto, Fechas, Estado
+                        </div>
+                    </div>
+
+                    <!-- Parallel split SVG -->
+                    <div class="connector-down"><div class="line"></div></div>
+
+                    <div style="position: relative; width: 100%; display: flex; justify-content: center;">
+                        <svg width="500" height="44" viewBox="0 0 500 44" style="display: block;">
+                            <line x1="145" y1="2" x2="355" y2="2" stroke="#cbd5e1" stroke-width="2"/>
+                            <line x1="145" y1="2" x2="145" y2="36" stroke="#cbd5e1" stroke-width="2"/>
+                            <line x1="355" y1="2" x2="355" y2="36" stroke="#cbd5e1" stroke-width="2"/>
+                            <line x1="250" y1="0" x2="250" y2="2" stroke="#cbd5e1" stroke-width="2"/>
+                            <polygon points="139,34 145,44 151,34" fill="#94a3b8"/>
+                            <polygon points="349,34 355,44 361,34" fill="#94a3b8"/>
+                        </svg>
+                    </div>
+
+                    <div class="parallel-container">
+                        <div class="parallel-branch">
+                            <div class="node node-sharepoint">
+                                <span class="node-icon">&#128193;</span>
+                                <div class="node-label">Microsoft SharePoint</div>
+                                <div class="node-sublabel">Sube PDF a SharePoint</div>
+                                <div class="node-tooltip">
+                                    <strong>Operacion:</strong> Upload (File)<br>
+                                    &#8226; Recurso: Archivo<br>
+                                    &#8226; Sube el PDF original a la biblioteca de documentos<br>
+                                    &#8226; Organiza por carpeta de proveedor
+                                </div>
+                            </div>
+                        </div>
+                        <div class="parallel-branch">
+                            <div class="node node-email">
+                                <span class="node-icon">&#128232;</span>
+                                <div class="node-label">Send Email</div>
+                                <div class="node-sublabel">Notifica nueva factura</div>
+                                <div class="node-tooltip">
+                                    <strong>Notificacion:</strong><br>
+                                    &#8226; Envia email al equipo de finanzas<br>
+                                    &#8226; Incluye resumen de la factura registrada<br>
+                                    &#8226; Enlace al archivo en SharePoint
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== WORKFLOW 2 ===== -->
+        <div class="workflow-section wf2">
+            <div class="workflow-header">
+                <div class="workflow-number">2</div>
+                <div class="workflow-title-group">
+                    <h2>Verificacion de Pagos</h2>
+                    <p>Conciliacion automatica entre facturas registradas y pagos realizados</p>
+                </div>
+            </div>
+            <div class="workflow-body">
+                <div class="flow-vertical">
+
+                    <!-- N1: Schedule Trigger -->
+                    <div class="node node-trigger">
+                        <span class="node-icon">&#9200;</span>
+                        <div class="node-label">Schedule Trigger</div>
+                        <div class="node-sublabel">Cada 6 horas</div>
+                        <div class="node-tooltip">
+                            <strong>Programacion:</strong><br>
+                            &#8226; Se ejecuta cada 6 horas<br>
+                            &#8226; Revisa si hay nuevos pagos registrados
+                        </div>
+                    </div>
+
+                    <div class="connector-down"><div class="line"></div><div class="arrow"></div></div>
+
+                    <!-- N2: SharePoint -->
+                    <div class="node node-sharepoint">
+                        <span class="node-icon">&#128193;</span>
+                        <div class="node-label">Microsoft SharePoint</div>
+                        <div class="node-sublabel">Consulta facturas pagadas</div>
+                        <div class="node-tooltip">
+                            <strong>Operacion:</strong> Leer archivos<br>
+                            &#8226; Consulta carpeta de facturas pagadas en SharePoint<br>
+                            &#8226; Obtiene lista de archivos subidos como comprobantes
+                        </div>
+                    </div>
+
+                    <div class="connector-down"><div class="line"></div><div class="arrow"></div></div>
+
+                    <!-- N3: Excel Read -->
+                    <div class="node node-excel">
+                        <span class="node-icon">&#128202;</span>
+                        <div class="node-label">Microsoft Excel 365</div>
+                        <div class="node-sublabel">Lee registro de facturas</div>
+                        <div class="node-tooltip">
+                            <strong>Operacion:</strong> Get Rows<br>
+                            &#8226; Lee todas las facturas con estado "Pendiente"<br>
+                            &#8226; Obtiene N&#176; Factura, Proveedor y Monto
+                        </div>
+                    </div>
+
+                    <div class="connector-down"><div class="line"></div><div class="arrow"></div></div>
+
+                    <!-- N4: Code -->
+                    <div class="node node-code">
+                        <span class="node-icon">&#128187;</span>
+                        <div class="node-label">Code</div>
+                        <div class="node-sublabel">Compara facturas vs pagos</div>
+                        <div class="node-tooltip">
+                            <strong>Logica:</strong><br>
+                            &#8226; Compara facturas registradas con archivos de pago en SharePoint<br>
+                            &#8226; Identifica coincidencias por N&#176; Factura o monto<br>
+                            &#8226; Marca facturas como "pagadas" si hay match
+                        </div>
+                    </div>
+
+                    <div class="connector-down"><div class="line"></div><div class="arrow"></div></div>
+
+                    <!-- N5: IF -->
+                    <div class="node node-logic">
+                        <span class="node-icon">&#9670;</span>
+                        <div class="node-label">Factura pagada?</div>
+                        <div class="node-sublabel">Evalua coincidencia</div>
+                        <div class="node-tooltip">
+                            <strong>Condicion:</strong><br>
+                            &#8226; true: Se encontro comprobante de pago<br>
+                            &#8226; false: Factura sigue pendiente
+                        </div>
+                    </div>
+
+                    <div class="connector-down"><div class="line"></div><div class="arrow"></div><span class="branch-label">&#10004; true</span></div>
+
+                    <!-- N6: Excel Update -->
+                    <div class="node node-excel">
+                        <span class="node-icon">&#128202;</span>
+                        <div class="node-label">Microsoft Excel 365</div>
+                        <div class="node-sublabel">Actualiza estado a "Pagada"</div>
+                        <div class="node-tooltip">
+                            <strong>Operacion:</strong> Update<br>
+                            &#8226; Cambia estado de "Pendiente" a "Pagada"<br>
+                            &#8226; Registra fecha de pago<br>
+                            &#8226; Actualiza columna de observaciones
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== WORKFLOW 3 ===== -->
+        <div class="workflow-section wf3">
+            <div class="workflow-header">
+                <div class="workflow-number">3</div>
+                <div class="workflow-title-group">
+                    <h2>Dashboard y Analisis</h2>
+                    <p>Generacion diaria de metricas y comparativas por proveedor</p>
+                </div>
+            </div>
+            <div class="workflow-body">
+                <div class="flow-vertical">
+
+                    <!-- N1: Schedule Trigger -->
+                    <div class="node node-trigger">
+                        <span class="node-icon">&#9200;</span>
+                        <div class="node-label">Schedule Trigger</div>
+                        <div class="node-sublabel">Diario a las 8:00 AM</div>
+                        <div class="node-tooltip">
+                            <strong>Programacion:</strong><br>
+                            &#8226; Ejecucion diaria a las 08:00<br>
+                            &#8226; Genera metricas actualizadas cada manana
+                        </div>
+                    </div>
+
+                    <div class="connector-down"><div class="line"></div><div class="arrow"></div></div>
+
+                    <!-- N2: Excel Read -->
+                    <div class="node node-excel">
+                        <span class="node-icon">&#128202;</span>
+                        <div class="node-label">Microsoft Excel 365</div>
+                        <div class="node-sublabel">Lee facturas (3 meses)</div>
+                        <div class="node-tooltip">
+                            <strong>Operacion:</strong> Get Rows<br>
+                            &#8226; Lee todas las facturas de los ultimos 3 meses<br>
+                            &#8226; Incluye facturas pagadas y pendientes
+                        </div>
+                    </div>
+
+                    <div class="connector-down"><div class="line"></div><div class="arrow"></div></div>
+
+                    <!-- N3: Code -->
+                    <div class="node node-code">
+                        <span class="node-icon">&#128187;</span>
+                        <div class="node-label">Code</div>
+                        <div class="node-sublabel">Calcula metricas</div>
+                        <div class="node-tooltip">
+                            <strong>Calculos:</strong><br>
+                            &#8226; Total facturado por mes<br>
+                            &#8226; Cantidad de facturas recibidas<br>
+                            &#8226; Promedio por factura<br>
+                            &#8226; Comparacion por proveedor<br>
+                            &#8226; Porcentaje pagado vs pendiente
+                        </div>
+                    </div>
+
+                    <div class="connector-down"><div class="line"></div><div class="arrow"></div></div>
+
+                    <!-- N4: Excel Dashboard -->
+                    <div class="node node-excel">
+                        <span class="node-icon">&#128202;</span>
+                        <div class="node-label">Microsoft Excel 365</div>
+                        <div class="node-sublabel">Actualiza hoja "Dashboard"</div>
+                        <div class="node-tooltip">
+                            <strong>Operacion:</strong> Update<br>
+                            &#8226; Actualiza la hoja "Dashboard" con las metricas calculadas<br>
+                            &#8226; Datos listos para graficos en Excel<br>
+                            &#8226; Resumen ejecutivo actualizado
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- LEGEND -->
+    <div class="legend-section">
+        <div class="legend-box">
+            <h3>Leyenda de Nodos</h3>
+            <div class="legend-grid">
+                <div class="legend-item">
+                    <div class="legend-color" style="background: var(--trigger);"></div>
+                    <span>Trigger (Disparador)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-diamond" style="background: var(--logic);"></div>
+                    <span>Logica / Condicion (IF)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: var(--data);"></div>
+                    <span>Procesamiento de Datos</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: var(--ai);"></div>
+                    <span>Inteligencia Artificial (Claude)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: var(--excel);"></div>
+                    <span>Microsoft Excel 365</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: var(--sharepoint);"></div>
+                    <span>Microsoft SharePoint</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: var(--email);"></div>
+                    <span>Email / Notificacion</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: var(--code);"></div>
+                    <span>Nodo de Codigo (Code)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: var(--edit);"></div>
+                    <span>Edit Fields (Set)</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FOOTER -->
+    <div class="footer">
+        InmoLawyer &mdash; Sistema de Automatizacion de Facturas &mdash; Arquitectura n8n &mdash; 2026
+    </div>
+
+    <script>
+        // Entrance animation on scroll
+        var observer = new IntersectionObserver(function(entries) {
+            entries.forEach(function(entry) {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateY(0)';
+                }
+            });
+        }, { threshold: 0.1 });
+
+        document.querySelectorAll('.node').forEach(function(node, i) {
+            node.style.opacity = '0';
+            node.style.transform = 'translateY(12px)';
+            node.style.transition = 'opacity 0.4s ease ' + (i * 0.06) + 's, transform 0.4s ease ' + (i * 0.06) + 's';
+            observer.observe(node);
+        });
+
+        // Click to pin tooltip
+        document.querySelectorAll('.node').forEach(function(node) {
+            node.addEventListener('click', function(e) {
+                var tooltip = this.querySelector('.node-tooltip');
+                if (!tooltip) return;
+                var isVisible = tooltip.style.opacity === '1';
+                document.querySelectorAll('.node-tooltip').forEach(function(t) {
+                    t.style.opacity = '';
+                    t.style.visibility = '';
+                    t.style.transform = '';
+                    t.style.pointerEvents = '';
+                });
+                if (!isVisible) {
+                    tooltip.style.opacity = '1';
+                    tooltip.style.visibility = 'visible';
+                    tooltip.style.transform = 'translateX(-50%) translateY(0)';
+                    tooltip.style.pointerEvents = 'auto';
+                }
+                e.stopPropagation();
+            });
+        });
+
+        document.addEventListener('click', function() {
+            document.querySelectorAll('.node-tooltip').forEach(function(t) {
+                t.style.opacity = '';
+                t.style.visibility = '';
+                t.style.transform = '';
+                t.style.pointerEvents = '';
+            });
+        });
+    </script>
+
+</body>
+</html>

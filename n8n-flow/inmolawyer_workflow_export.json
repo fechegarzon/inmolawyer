@@ -1,0 +1,416 @@
+{
+  "name": "InmoLawyer - Analisis de Contratos",
+  "nodes": [
+    {
+      "id": "ee719552-7af9-4824-9420-b6e663b2a647",
+      "name": "Webhook - Recibir Contrato",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [-1328, 112],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "analizar-contrato",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*",
+          "rawBody": true
+        }
+      },
+      "webhookId": "inmolawyer-contrato"
+    },
+    {
+      "id": "extract-pdf-text-001",
+      "name": "Extraer Texto PDF",
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [-1160, 112],
+      "parameters": {
+        "operation": "pdf",
+        "binaryPropertyName": "file"
+      }
+    },
+    {
+      "id": "a1811124-6522-42aa-8e1c-b7f643e5babb",
+      "name": "Extraer Datos del Contrato",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-980, 112],
+      "parameters": {
+        "jsCode": "// InmoLawyer - Extractor v6 - Recibe texto de PDF\nconst inputItem = $input.first();\nconst textoContrato = inputItem.json.text || inputItem.json.data || '';\nconst archivoNombre = inputItem.json.fileName || 'contrato.pdf';\n\nconst limpiarTexto = (str) => str ? str.trim().replace(/\\s+/g, ' ') : null;\nconst extraerNumero = (str) => str ? str.replace(/[^0-9]/g, '') : null;\nconst parsearMoneda = (str) => { \n  if (!str) return null; \n  const limpio = str.replace(/[$\\s]/g, '').replace(/\\./g, '').replace(',', '.');\n  const num = parseFloat(limpio);\n  return (num > 10000 && num < 100000000) ? num : null;\n};\n\nfunction extraerDatosContrato(texto) {\n  const data = { \n    arrendador_nombre: null, arrendador_doc: null, \n    arrendatario_nombre: null, arrendatario_doc: null, \n    canon: null, fecha_inicio: null, duracion_meses: null, \n    direccion: null, ciudad: null \n  };\n  \n  // ========== ARRENDADOR ==========\n  let matchArr = texto.match(/Parte\\s+Arrendadora\\s+([A-ZÁÉÍÓÚÑ][A-Za-záéíóúñÁÉÍÓÚÑ\\s]+?)(?:\\n|CC|C\\.C\\.|$)/i);\n  if (matchArr && matchArr[1]) {\n    data.arrendador_nombre = limpiarTexto(matchArr[1]);\n  }\n  \n  if (!data.arrendador_nombre) {\n    matchArr = texto.match(/(?:EL\\s+)?ARRENDADOR[,:;\\s]+([A-ZÁÉÍÓÚÑ][A-Za-záéíóúñÁÉÍÓÚÑ\\s]+?)(?:,|\\s+mayor|\\s+identificad|\\s+con\\s+c|\\n)/i);\n    if (matchArr && matchArr[1]) {\n      let nombre = matchArr[1].trim();\n      if (nombre.length > 3 && nombre.length < 80) {\n        data.arrendador_nombre = limpiarTexto(nombre);\n      }\n    }\n  }\n  \n  if (!data.arrendador_nombre) {\n    const matchEmpresa = texto.match(/([A-Z][A-Z\\s]{2,}(?:SAS|S\\.A\\.S\\.?|SA|S\\.A\\.?|LTDA|LIMITADA))/i);\n    if (matchEmpresa) { data.arrendador_nombre = limpiarTexto(matchEmpresa[1]); }\n  }\n  \n  // ========== ARRENDATARIO ==========\n  let matchArrt = texto.match(/Parte\\s+Arrendataria\\s+([A-ZÁÉÍÓÚÑ][A-Za-záéíóúñÁÉÍÓÚÑ\\s]+?)(?:\\n|CC|C\\.C\\.|$)/i);\n  if (matchArrt && matchArrt[1]) {\n    data.arrendatario_nombre = limpiarTexto(matchArrt[1]);\n  }\n  \n  if (!data.arrendatario_nombre) {\n    matchArrt = texto.match(/(?:EL\\s+)?ARRENDATARIO[,:;\\s]+([A-ZÁÉÍÓÚÑ][A-Za-záéíóúñÁÉÍÓÚÑ\\s]+?)(?:,|\\s+mayor|\\s+identificad|\\s+con\\s+c|\\n)/i);\n    if (matchArrt && matchArrt[1]) {\n      let nombre = matchArrt[1].trim();\n      if (nombre.length > 3 && nombre.length < 80) {\n        data.arrendatario_nombre = limpiarTexto(nombre);\n      }\n    }\n  }\n  \n  // ========== DOCUMENTOS (CC) ==========\n  const patronCC = /(?:CC|C\\.C\\.?)\\s*(\\d[\\d.,]+)/gi;\n  const todosCC = [...texto.matchAll(patronCC)];\n  \n  if (todosCC.length >= 2) {\n    data.arrendador_doc = extraerNumero(todosCC[0][1]);\n    data.arrendatario_doc = extraerNumero(todosCC[1][1]);\n  } else if (todosCC.length === 1) {\n    data.arrendador_doc = extraerNumero(todosCC[0][1]);\n  }\n  \n  const matchNIT = texto.match(/NIT[.:\\s]*([\\d.,\\-]+)/i);\n  if (matchNIT) { data.arrendador_doc = extraerNumero(matchNIT[1]); }\n  \n  // ========== CANON ==========\n  const patronesCanon = [\n    /canon[^$\\d]{0,50}?\\$\\s*([\\d.,]+)/i,\n    /\\(\\s*\\$\\s*([\\d.,]+)\\s*\\)/i,\n    /([\\d]{1,3}(?:\\.[\\d]{3})+)\\s*(?:pesos|m\\/cte|mensuales)/i,\n    /valor\\s*(?:del)?\\s*(?:canon|arriendo)[^$\\d]{0,30}?\\$?\\s*([\\d.,]+)/i\n  ];\n  for (const patron of patronesCanon) {\n    const match = texto.match(patron);\n    if (match) { const valor = parsearMoneda(match[1]); if (valor) { data.canon = valor; break; } }\n  }\n  \n  // ========== DIRECCION ==========\n  const matchDir = texto.match(/((?:Calle|Carrera|Avenida|Diagonal|Transversal|Cra\\.?|Cl\\.?|Av\\.?)\\s*\\d+[\\w\\s#\\.\\-]*)/i);\n  if (matchDir) {\n    let dir = matchDir[1].trim().substring(0, 100);\n    data.direccion = limpiarTexto(dir);\n  }\n  \n  // ========== CIUDAD ==========\n  const matchCiudad = texto.match(/(Bogot[aá]\\s*D\\.?C\\.?|Medell[ií]n|Cali|Barranquilla|Cartagena|Bucaramanga|Santa\\s*Marta|Pereira|Manizales|C[uú]cuta|Ibagu[eé]|Villavicencio)/i);\n  if (matchCiudad) { data.ciudad = limpiarTexto(matchCiudad[1]); }\n  \n  // ========== FECHA INICIO ==========\n  const meses = {'enero':'01','febrero':'02','marzo':'03','abril':'04','mayo':'05','junio':'06','julio':'07','agosto':'08','septiembre':'09','octubre':'10','noviembre':'11','diciembre':'12'};\n  const matchFecha = texto.match(/(\\d{1,2})\\s*(?:de)?\\s*(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)\\s*(?:de|del)?\\s*(\\d{4})/i);\n  if (matchFecha && meses[matchFecha[2].toLowerCase()]) { \n    const dia = matchFecha[1].padStart(2, '0');\n    const mes = meses[matchFecha[2].toLowerCase()];\n    const anio = matchFecha[3];\n    if (parseInt(anio) >= 2015 && parseInt(anio) <= 2030) { data.fecha_inicio = `${anio}-${mes}-${dia}`; }\n  }\n  \n  // ========== DURACION ==========\n  const matchDur = texto.match(/(?:duraci[oó]n|vigencia|plazo|t[eé]rmino)[^\\d]{0,30}?(\\d+)\\s*\\)?\\s*(?:meses|a[nñ]os)/i);\n  if (matchDur) { \n    const num = parseInt(matchDur[1]);\n    data.duracion_meses = texto.toLowerCase().includes('año') && num <= 10 ? num * 12 : num;\n  } else {\n    const numEscrito = texto.match(/(?:UN|DOS|TRES|CUATRO|CINCO|SEIS|DOCE)\\s*\\(?\\d*\\)?\\s*(?:MESES|AÑOS?)/i);\n    if (numEscrito) {\n      const map = {'UN':1,'DOS':2,'TRES':3,'CUATRO':4,'CINCO':5,'SEIS':6,'DOCE':12};\n      for (const [palabra, num] of Object.entries(map)) {\n        if (numEscrito[0].toUpperCase().includes(palabra)) {\n          data.duracion_meses = numEscrito[0].toUpperCase().includes('AÑO') ? num * 12 : num;\n          break;\n        }\n      }\n    }\n  }\n  \n  return data;\n}\n\nconst datosExtraidos = extraerDatosContrato(textoContrato);\nconst contratoId = 'CTR-' + Date.now();\n\nreturn [{\n  json: {\n    id: contratoId,\n    fecha: new Date().toISOString(),\n    archivo: archivoNombre,\n    ...datosExtraidos,\n    estado: 'analizado',\n    textoContrato: textoContrato\n  }\n}];"
+      }
+    },
+    {
+      "id": "a03ab85c-c452-478f-98cc-3bba06ca92ef",
+      "name": "Guardar Contrato",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [-760, 112],
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "1oY25Vl38F7K26W_JWu7gEL7emUrhoHrMcPA2-XjrDQM"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Contratos"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": null,
+          "matchingColumns": []
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "REEMPLAZAR_ID",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "id": "llm-chain-analysis-001",
+      "name": "Analisis LLM Chain",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.5,
+      "position": [-540, 112],
+      "parameters": {
+        "promptType": "define",
+        "text": "=Eres un abogado inmobiliario colombiano experto en la Ley 820 de 2003 (arrendamiento de vivienda urbana).\n\nAnaliza el siguiente contrato de arrendamiento y responde UNICAMENTE en formato JSON válido con esta estructura exacta:\n{\n  \"alertas\": [\n    {\n      \"tipo\": \"danger\",\n      \"titulo\": \"Título de la alerta\",\n      \"descripcion\": \"Descripción detallada del problema\",\n      \"referencia_legal\": \"Art. X Ley 820/2003\",\n      \"es_clausula_abusiva\": true\n    }\n  ],\n  \"score_riesgo\": 0,\n  \"resumen\": \"Resumen del análisis\"\n}\n\nPuntos CRITICOS a verificar:\n1. Art. 16: Depósitos en dinero como garantía están PROHIBIDOS (tipo: danger)\n2. Art. 20: Incremento anual NO puede superar el IPC del año anterior (tipo: danger si >IPC)\n3. Art. 22: Causales de terminación por el arrendador\n4. Art. 24: Preaviso mínimo de 3 meses para terminar\n5. Cláusulas de penalidad excesivas\n6. Renuncia anticipada a derechos del arrendatario\n\nTipos de alerta:\n- \"danger\": Cláusula ilegal o muy riesgosa\n- \"warning\": Cláusula potencialmente problemática\n- \"info\": Información relevante\n- \"success\": Aspecto positivo del contrato\n\nscore_riesgo: 0 (sin riesgo) a 100 (muy riesgoso)\n\nCONTRATO A ANALIZAR:\n---\n{{ $json.textoContrato.substring(0, 12000) }}\n---\n\nResponde SOLO el JSON, sin texto antes ni después."
+      }
+    },
+    {
+      "id": "a02177a8-4c3f-4faa-9687-23a72f0844e8",
+      "name": "Anthropic Model Analisis",
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.2,
+      "position": [-540, 320],
+      "parameters": {
+        "model": "claude-sonnet-4-20250514",
+        "options": {
+          "maxTokensToSample": 4096,
+          "temperature": 0.3
+        }
+      },
+      "credentials": {
+        "anthropicApi": {
+          "id": "REEMPLAZAR_ID",
+          "name": "Anthropic account"
+        }
+      }
+    },
+    {
+      "id": "eb17ed19-49a8-4c88-9416-6009cb73e268",
+      "name": "Procesar Respuesta IA",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-320, 112],
+      "parameters": {
+        "jsCode": "// InmoLawyer - Procesar Respuesta de Anthropic API\nconst inputData = $input.first().json;\n\nlet respuestaTexto = '';\nif (inputData.content && inputData.content[0] && inputData.content[0].text) {\n  respuestaTexto = inputData.content[0].text;\n} else if (inputData.text) {\n  respuestaTexto = inputData.text;\n} else if (inputData.response) {\n  respuestaTexto = inputData.response;\n}\n\nlet datosContrato;\ntry {\n  datosContrato = $('Guardar Contrato').first().json;\n} catch (e) {\n  datosContrato = { id: 'CTR-UNKNOWN', textoContrato: '' };\n}\n\nlet analisis = { alertas: [], score_riesgo: 0, resumen: '' };\nlet usedAI = false;\n\nif (respuestaTexto) {\n  try {\n    const jsonMatch = respuestaTexto.match(/\\{[\\s\\S]*\\}/);\n    if (jsonMatch) {\n      analisis = JSON.parse(jsonMatch[0]);\n      usedAI = true;\n    }\n  } catch (e) {}\n}\n\nif (!usedAI || !analisis.alertas || analisis.alertas.length === 0) {\n  const texto = datosContrato.textoContrato || '';\n  const textoLower = texto.toLowerCase();\n  let scoreRiesgo = 0;\n  analisis.alertas = [];\n  \n  if (textoLower.includes('depósito') || textoLower.includes('deposito')) {\n    if (textoLower.includes('dinero') || textoLower.includes('efectivo') || textoLower.includes('suma')) {\n      analisis.alertas.push({\n        tipo: 'danger',\n        titulo: 'Depósito en Dinero PROHIBIDO',\n        descripcion: 'La Ley 820 Art. 16 prohíbe exigir depósitos en efectivo.',\n        referencia_legal: 'Art. 16 Ley 820/2003',\n        es_clausula_abusiva: true\n      });\n      scoreRiesgo += 30;\n    }\n  }\n  \n  const matchIncremento = texto.match(/(\\d+)\\s*%/);\n  if (matchIncremento && parseInt(matchIncremento[1]) > 12) {\n    analisis.alertas.push({\n      tipo: 'danger',\n      titulo: 'Incremento Excesivo (' + matchIncremento[1] + '%)',\n      descripcion: 'El incremento supera el IPC permitido.',\n      referencia_legal: 'Art. 20 Ley 820/2003',\n      es_clausula_abusiva: true\n    });\n    scoreRiesgo += 25;\n  }\n  \n  if (analisis.alertas.length === 0) {\n    analisis.alertas.push({\n      tipo: 'success',\n      titulo: 'Sin Alertas Críticas',\n      descripcion: 'No se detectaron problemas obvios.',\n      referencia_legal: 'Ley 820/2003',\n      es_clausula_abusiva: false\n    });\n  }\n  \n  analisis.score_riesgo = Math.min(scoreRiesgo, 100);\n  analisis.resumen = 'Análisis básico completado.';\n}\n\nconst alertasFormateadas = (analisis.alertas || []).map((a, i) => ({\n  ...a,\n  id: datosContrato.id + '-A' + i,\n  contrato_id: datosContrato.id\n}));\n\nreturn [{\n  json: {\n    contratoId: datosContrato.id,\n    datos: {\n      arrendador: { nombre: datosContrato.arrendador_nombre, documento: datosContrato.arrendador_doc },\n      arrendatario: { nombre: datosContrato.arrendatario_nombre, documento: datosContrato.arrendatario_doc },\n      canon: datosContrato.canon,\n      direccion: datosContrato.direccion,\n      ciudad: datosContrato.ciudad,\n      fecha_inicio: datosContrato.fecha_inicio,\n      duracion_meses: datosContrato.duracion_meses\n    },\n    analisis: analisis,\n    alertas: alertasFormateadas,\n    scoreRiesgo: analisis.score_riesgo || 0,\n    resumen: analisis.resumen || 'Análisis completado',\n    usedAI: usedAI\n  }\n}];"
+      }
+    },
+    {
+      "id": "9e54018b-5c1a-4781-b8cd-7324463c2405",
+      "name": "Guardar Alertas",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [-100, 0],
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "1oY25Vl38F7K26W_JWu7gEL7emUrhoHrMcPA2-XjrDQM"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Alertas"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData"
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "REEMPLAZAR_ID",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "id": "calcular-ipc-001",
+      "name": "Calcular Incrementos IPC",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-100, 224],
+      "parameters": {
+        "jsCode": "// InmoLawyer - Calcular Incrementos IPC segun DANE\nconst IPC_HISTORICO = {\n  2025: 5.20, 2024: 5.20, 2023: 9.28, 2022: 13.12, 2021: 5.62, 2020: 1.61,\n  2019: 3.80, 2018: 3.18, 2017: 4.09, 2016: 5.75, 2015: 6.77,\n  2014: 3.66, 2013: 1.94, 2012: 2.44, 2011: 3.73, 2010: 3.17\n};\n\nconst inputData = $input.first().json;\nconst datosContrato = inputData.datos || {};\nconst contratoId = inputData.contratoId;\n\nconst fechaInicioStr = datosContrato.fecha_inicio;\nconst canonInicial = datosContrato.canon;\n\nconst incrementos = [];\nlet fechasImportantes = {};\n\nif (fechaInicioStr && canonInicial) {\n  const fechaInicio = new Date(fechaInicioStr);\n  const anioInicio = fechaInicio.getFullYear();\n  const mesInicio = fechaInicio.getMonth();\n  const diaInicio = fechaInicio.getDate();\n  const anioActual = new Date().getFullYear();\n  \n  let canonActual = canonInicial;\n  \n  for (let anio = anioInicio + 1; anio <= anioActual; anio++) {\n    const ipc = IPC_HISTORICO[anio] || IPC_HISTORICO[anio - 1] || 5.0;\n    const incremento = Math.round(canonActual * (ipc / 100));\n    const canonNuevo = canonActual + incremento;\n    \n    incrementos.push({\n      id: contratoId + '-INC-' + anio,\n      contrato_id: contratoId,\n      anio: anio,\n      ipc_aplicado: ipc,\n      canon_anterior: canonActual,\n      incremento: incremento,\n      canon_nuevo: canonNuevo\n    });\n    \n    canonActual = canonNuevo;\n  }\n  \n  const duracionMeses = datosContrato.duracion_meses || 12;\n  \n  const fechaVencimiento = new Date(fechaInicio);\n  fechaVencimiento.setMonth(fechaVencimiento.getMonth() + duracionMeses);\n  \n  const hoy = new Date();\n  let proximoAniversario = new Date(hoy.getFullYear(), mesInicio, diaInicio);\n  if (proximoAniversario <= hoy) {\n    proximoAniversario.setFullYear(proximoAniversario.getFullYear() + 1);\n  }\n  \n  const fechaNotifIncremento = new Date(proximoAniversario);\n  fechaNotifIncremento.setMonth(fechaNotifIncremento.getMonth() - 1);\n  \n  const fechaNotifDesocupacion = new Date(fechaVencimiento);\n  fechaNotifDesocupacion.setMonth(fechaNotifDesocupacion.getMonth() - 3);\n  \n  const ipcProximo = IPC_HISTORICO[anioActual] || 5.20;\n  const incrementoProximo = Math.round(canonActual * (ipcProximo / 100));\n  \n  fechasImportantes = {\n    vencimiento: fechaVencimiento.toISOString().split('T')[0],\n    notificacion_incremento: fechaNotifIncremento.toISOString().split('T')[0],\n    notificacion_desocupacion: fechaNotifDesocupacion.toISOString().split('T')[0],\n    proximo_incremento: {\n      fecha: proximoAniversario.toISOString().split('T')[0],\n      ipc: ipcProximo,\n      canon_actual: canonActual,\n      incremento_proyectado: incrementoProximo,\n      canon_proyectado: canonActual + incrementoProximo\n    }\n  };\n}\n\nreturn [{\n  json: {\n    ...inputData,\n    incrementos: incrementos,\n    fechas_importantes: fechasImportantes,\n    canon_actual_calculado: incrementos.length > 0 ? incrementos[incrementos.length - 1].canon_nuevo : canonInicial\n  }\n}];"
+      }
+    },
+    {
+      "id": "272d3625-b7db-4cb6-a936-28d925d484a2",
+      "name": "Respuesta al Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [120, 112],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ success: true, contratoId: $json.contratoId, datos: $json.datos, alertas: $json.alertas || [], score_riesgo: $json.scoreRiesgo, resumen: $json.resumen, usedAI: $json.usedAI, incrementos: $json.incrementos || [], fechas_importantes: $json.fechas_importantes || {}, canon_actual_calculado: $json.canon_actual_calculado }) }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {"name": "Access-Control-Allow-Origin", "value": "*"},
+              {"name": "Access-Control-Allow-Methods", "value": "POST, OPTIONS"},
+              {"name": "Access-Control-Allow-Headers", "value": "Content-Type"}
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "guardar-incrementos-001",
+      "name": "Guardar Incrementos",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [120, 320],
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "1oY25Vl38F7K26W_JWu7gEL7emUrhoHrMcPA2-XjrDQM"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Incrementos"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "contrato_id": "={{ $json.contratoId }}",
+            "datos_incrementos": "={{ JSON.stringify($json.incrementos) }}",
+            "canon_actual": "={{ $json.canon_actual_calculado }}",
+            "fecha_calculo": "={{ new Date().toISOString() }}"
+          }
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "REEMPLAZAR_ID",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "id": "6a8f02e8-215e-4f9f-b48a-cdab35ea9856",
+      "name": "Webhook - Consulta Chat",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [-1328, 512],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "consulta-contrato",
+        "responseMode": "responseNode",
+        "options": {"allowedOrigins": "*"}
+      },
+      "webhookId": "inmolawyer-chat"
+    },
+    {
+      "id": "7a5914a1-e5c6-40a1-8fec-1cab5b86f0ba",
+      "name": "Buscar Contrato",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [-1104, 512],
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "1oY25Vl38F7K26W_JWu7gEL7emUrhoHrMcPA2-XjrDQM"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Contratos"
+        },
+        "filtersUI": {
+          "values": [{"lookupColumn": "id", "lookupValue": "={{ $json.body.contratoId }}"}]
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "REEMPLAZAR_ID",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "id": "merge-chat-context-001",
+      "name": "Preparar Contexto Chat",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-880, 420],
+      "parameters": {
+        "jsCode": "const contrato = $input.first().json;\nconst pregunta = $('Webhook - Consulta Chat').first().json.body.pregunta;\n\nconst contexto = {\n  contratoId: contrato.id,\n  pregunta: pregunta,\n  datosContrato: {\n    arrendador: contrato.arrendador_nombre || 'No especificado',\n    arrendatario: contrato.arrendatario_nombre || 'No especificado',\n    canon: contrato.canon,\n    direccion: contrato.direccion,\n    ciudad: contrato.ciudad,\n    fechaInicio: contrato.fecha_inicio,\n    duracionMeses: contrato.duracion_meses,\n    estado: contrato.estado\n  },\n  textoContrato: contrato.textoContrato || '',\n  clausulasDetectadas: []\n};\n\nconst texto = (contrato.textoContrato || '').toLowerCase();\n\nif (texto.includes('depósito') || texto.includes('deposito')) {\n  contexto.clausulasDetectadas.push('Cláusula de depósito detectada - Verificar si cumple Art. 16 Ley 820');\n}\nif (texto.includes('10%') || texto.includes('incremento') && texto.includes('fijo')) {\n  contexto.clausulasDetectadas.push('Incremento fijo detectado - Posible violación Art. 20 Ley 820 (máximo IPC)');\n}\nif (texto.includes('sin preaviso') || texto.includes('cualquier momento')) {\n  contexto.clausulasDetectadas.push('Terminación sin preaviso - Posible violación Arts. 22-24 Ley 820');\n}\n\nreturn [{ json: contexto }];"
+      }
+    },
+    {
+      "id": "llm-chain-chat-001",
+      "name": "Chat LLM Chain",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.5,
+      "position": [-660, 512],
+      "parameters": {
+        "promptType": "define",
+        "text": "=Eres un abogado inmobiliario colombiano experto en la Ley 820 de 2003.\n\nDATOS DEL CONTRATO:\n- Arrendador: {{ $json.datosContrato?.arrendador || 'No especificado' }}\n- Arrendatario: {{ $json.datosContrato?.arrendatario || 'No especificado' }}\n- Canon mensual: ${{ $json.datosContrato?.canon?.toLocaleString() || 'No especificado' }}\n- Dirección: {{ $json.datosContrato?.direccion || 'No especificado' }}\n- Ciudad: {{ $json.datosContrato?.ciudad || 'No especificado' }}\n- Fecha inicio: {{ $json.datosContrato?.fechaInicio || 'No especificado' }}\n- Duración: {{ $json.datosContrato?.duracionMeses || 'No especificado' }} meses\n\nCLÁUSULAS PROBLEMÁTICAS:\n{{ $json.clausulasDetectadas?.length > 0 ? $json.clausulasDetectadas.join('\\n') : 'Ninguna' }}\n\nTEXTO DEL CONTRATO:\n{{ $json.textoContrato ? $json.textoContrato.substring(0, 6000) : 'No disponible' }}\n\nPREGUNTA:\n{{ $json.pregunta }}\n\nINSTRUCCIONES:\n1. Responde como abogado profesional\n2. Cita los artículos de la Ley 820 de 2003\n3. Si necesita notificar algo, incluye un MODELO DE CARTA\n4. Usa formato:\n---\nCIUDAD, [FECHA]\nSeñor(a)\n[DESTINATARIO]\n[DIRECCIÓN]\n\nAsunto: [ASUNTO]\n\n[CUERPO]\n\nFundamento legal: [ARTÍCULOS]\n\nAtentamente,\n[REMITENTE]\n---"
+      }
+    },
+    {
+      "id": "60c07fe1-4364-430c-89e7-f52e853a6c1c",
+      "name": "Anthropic Model Chat",
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.2,
+      "position": [-660, 704],
+      "parameters": {
+        "model": "claude-sonnet-4-20250514",
+        "options": {
+          "maxTokensToSample": 2048,
+          "temperature": 0.4
+        }
+      },
+      "credentials": {
+        "anthropicApi": {
+          "id": "REEMPLAZAR_ID",
+          "name": "Anthropic account"
+        }
+      }
+    },
+    {
+      "id": "format-chat-response-001",
+      "name": "Formatear Respuesta Chat",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-440, 512],
+      "parameters": {
+        "jsCode": "const respuestaLLM = $input.first().json.text;\nconst contexto = $('Preparar Contexto Chat').first().json;\nconst webhookData = $('Webhook - Consulta Chat').first().json.body;\n\nconst consultaId = 'CON-' + Date.now();\n\nconst datosGuardar = {\n  id: consultaId,\n  contrato_id: webhookData.contratoId || contexto.contratoId,\n  pregunta: webhookData.pregunta || contexto.pregunta,\n  respuesta: respuestaLLM,\n  created_at: new Date().toISOString()\n};\n\nconst respuestaWebhook = {\n  success: true,\n  consultaId: consultaId,\n  respuesta: respuestaLLM,\n  contratoId: webhookData.contratoId\n};\n\nreturn [{ json: { ...datosGuardar, _respuestaWebhook: respuestaWebhook } }];"
+      }
+    },
+    {
+      "id": "feb58d00-b9f3-4a8b-a3a7-0bfc25f5fb73",
+      "name": "Guardar Consulta",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [-220, 512],
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "1oY25Vl38F7K26W_JWu7gEL7emUrhoHrMcPA2-XjrDQM"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "consultas"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData"
+        },
+        "options": {"handlingExtraData": "ignoreIt"}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "REEMPLAZAR_ID",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "id": "0794e184-3422-4cb2-8c0f-c4f7d2869eb2",
+      "name": "Respuesta Chat Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [0, 512],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $('Formatear Respuesta Chat').first().json._respuestaWebhook }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {"name": "Access-Control-Allow-Origin", "value": "*"},
+              {"name": "Access-Control-Allow-Methods", "value": "POST, OPTIONS"},
+              {"name": "Access-Control-Allow-Headers", "value": "Content-Type"}
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook - Recibir Contrato": {
+      "main": [[{"node": "Extraer Texto PDF", "type": "main", "index": 0}]]
+    },
+    "Extraer Texto PDF": {
+      "main": [[{"node": "Extraer Datos del Contrato", "type": "main", "index": 0}]]
+    },
+    "Extraer Datos del Contrato": {
+      "main": [[{"node": "Guardar Contrato", "type": "main", "index": 0}]]
+    },
+    "Guardar Contrato": {
+      "main": [[{"node": "Analisis LLM Chain", "type": "main", "index": 0}]]
+    },
+    "Anthropic Model Analisis": {
+      "ai_languageModel": [[{"node": "Analisis LLM Chain", "type": "ai_languageModel", "index": 0}]]
+    },
+    "Analisis LLM Chain": {
+      "main": [[{"node": "Procesar Respuesta IA", "type": "main", "index": 0}]]
+    },
+    "Procesar Respuesta IA": {
+      "main": [
+        [
+          {"node": "Guardar Alertas", "type": "main", "index": 0},
+          {"node": "Calcular Incrementos IPC", "type": "main", "index": 0}
+        ]
+      ]
+    },
+    "Calcular Incrementos IPC": {
+      "main": [
+        [
+          {"node": "Respuesta al Webhook", "type": "main", "index": 0},
+          {"node": "Guardar Incrementos", "type": "main", "index": 0}
+        ]
+      ]
+    },
+    "Webhook - Consulta Chat": {
+      "main": [[{"node": "Buscar Contrato", "type": "main", "index": 0}]]
+    },
+    "Buscar Contrato": {
+      "main": [[{"node": "Preparar Contexto Chat", "type": "main", "index": 0}]]
+    },
+    "Preparar Contexto Chat": {
+      "main": [[{"node": "Chat LLM Chain", "type": "main", "index": 0}]]
+    },
+    "Anthropic Model Chat": {
+      "ai_languageModel": [[{"node": "Chat LLM Chain", "type": "ai_languageModel", "index": 0}]]
+    },
+    "Chat LLM Chain": {
+      "main": [[{"node": "Formatear Respuesta Chat", "type": "main", "index": 0}]]
+    },
+    "Formatear Respuesta Chat": {
+      "main": [[{"node": "Guardar Consulta", "type": "main", "index": 0}]]
+    },
+    "Guardar Consulta": {
+      "main": [[{"node": "Respuesta Chat Webhook", "type": "main", "index": 0}]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
