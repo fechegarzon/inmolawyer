@@ -1,0 +1,833 @@
+{
+  "name": "Automatización Facturas - InmoLawyer",
+  "nodes": [
+    {
+      "parameters": {
+        "event": "messageReceived",
+        "filters": {
+          "hasAttachments": true
+        },
+        "output": "raw",
+        "options": {}
+      },
+      "id": "a1b2c3d4-1111-4aaa-b111-000000000001",
+      "name": "Outlook - Nuevas Facturas",
+      "type": "n8n-nodes-base.microsoftOutlookTrigger",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "notes": "Detecta correos nuevos en Outlook que contengan archivos adjuntos. Este es el punto de entrada del flujo principal de captura de facturas."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition-pdf-check",
+              "leftValue": "={{ $json.attachments[0].contentType }}",
+              "rightValue": "pdf",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "a1b2c3d4-1111-4aaa-b111-000000000002",
+      "name": "¿Es PDF?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [470, 300],
+      "notes": "Verifica que el archivo adjunto sea un PDF válido comprobando el tipo MIME del attachment."
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "binaryPropertyName": "attachment_0",
+        "options": {}
+      },
+      "id": "a1b2c3d4-1111-4aaa-b111-000000000003",
+      "name": "Extraer Texto PDF",
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [690, 300],
+      "notes": "Extrae el texto del archivo PDF adjunto para su posterior análisis con IA."
+    },
+    {
+      "parameters": {
+        "text": "={{ $json.text }}",
+        "schemaType": "fromAttributes",
+        "attributes": {
+          "attributes": [
+            {
+              "name": "numero_factura",
+              "type": "string",
+              "description": "Número o código de la factura"
+            },
+            {
+              "name": "proveedor",
+              "type": "string",
+              "description": "Nombre del proveedor o empresa que emite la factura"
+            },
+            {
+              "name": "nit_proveedor",
+              "type": "string",
+              "description": "NIT o identificación fiscal del proveedor"
+            },
+            {
+              "name": "monto_total",
+              "type": "number",
+              "description": "Monto total a pagar en la factura, incluyendo impuestos"
+            },
+            {
+              "name": "subtotal",
+              "type": "number",
+              "description": "Subtotal antes de impuestos"
+            },
+            {
+              "name": "iva",
+              "type": "number",
+              "description": "Valor del IVA"
+            },
+            {
+              "name": "fecha_emision",
+              "type": "string",
+              "description": "Fecha de emisión de la factura en formato YYYY-MM-DD"
+            },
+            {
+              "name": "fecha_vencimiento",
+              "type": "string",
+              "description": "Fecha de vencimiento o fecha límite de pago en formato YYYY-MM-DD"
+            },
+            {
+              "name": "concepto",
+              "type": "string",
+              "description": "Descripción o concepto principal de la factura"
+            },
+            {
+              "name": "moneda",
+              "type": "string",
+              "description": "Moneda de la factura (COP, USD, etc.)"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a1b2c3d4-1111-4aaa-b111-000000000004",
+      "name": "IA - Extraer Datos Factura",
+      "type": "@n8n/n8n-nodes-langchain.informationExtractor",
+      "typeVersion": 1.2,
+      "position": [910, 300],
+      "notes": "Utiliza IA (Claude Sonnet) para extraer datos estructurados de la factura: número, proveedor, NIT, montos, fechas, concepto y moneda."
+    },
+    {
+      "parameters": {
+        "mode": "manual",
+        "duplicateItem": false,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "field-numero-factura",
+              "name": "numero_factura",
+              "value": "={{ $json.numero_factura }}",
+              "type": "string"
+            },
+            {
+              "id": "field-proveedor",
+              "name": "proveedor",
+              "value": "={{ $json.proveedor }}",
+              "type": "string"
+            },
+            {
+              "id": "field-nit-proveedor",
+              "name": "nit_proveedor",
+              "value": "={{ $json.nit_proveedor }}",
+              "type": "string"
+            },
+            {
+              "id": "field-monto-total",
+              "name": "monto_total",
+              "value": "={{ $json.monto_total }}",
+              "type": "number"
+            },
+            {
+              "id": "field-subtotal",
+              "name": "subtotal",
+              "value": "={{ $json.subtotal }}",
+              "type": "number"
+            },
+            {
+              "id": "field-iva",
+              "name": "iva",
+              "value": "={{ $json.iva }}",
+              "type": "number"
+            },
+            {
+              "id": "field-fecha-emision",
+              "name": "fecha_emision",
+              "value": "={{ $json.fecha_emision }}",
+              "type": "string"
+            },
+            {
+              "id": "field-fecha-vencimiento",
+              "name": "fecha_vencimiento",
+              "value": "={{ $json.fecha_vencimiento }}",
+              "type": "string"
+            },
+            {
+              "id": "field-concepto",
+              "name": "concepto",
+              "value": "={{ $json.concepto }}",
+              "type": "string"
+            },
+            {
+              "id": "field-moneda",
+              "name": "moneda",
+              "value": "={{ $json.moneda }}",
+              "type": "string"
+            },
+            {
+              "id": "field-estado",
+              "name": "estado",
+              "value": "Pendiente",
+              "type": "string"
+            },
+            {
+              "id": "field-fecha-registro",
+              "name": "fecha_registro",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            },
+            {
+              "id": "field-fecha-pago",
+              "name": "fecha_pago",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "field-mes",
+              "name": "mes",
+              "value": "={{ $json.fecha_emision.slice(0,7) }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a1b2c3d4-1111-4aaa-b111-000000000005",
+      "name": "Estructurar Datos",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [1130, 300],
+      "notes": "Estructura los datos extraídos por la IA en un formato uniforme, agregando campos de control: estado (Pendiente), fecha de registro, fecha de pago vacía, y el mes extraído de la fecha de emisión."
+    },
+    {
+      "parameters": {
+        "resource": "table",
+        "operation": "append",
+        "workbook": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "worksheet": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "table": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "dataMode": "autoMapInputData",
+        "options": {}
+      },
+      "id": "a1b2c3d4-1111-4aaa-b111-000000000006",
+      "name": "Excel - Registrar Factura",
+      "type": "n8n-nodes-base.microsoftExcel",
+      "typeVersion": 2.2,
+      "position": [1350, 300],
+      "notes": "Agrega una nueva fila en la tabla de Excel 365 con los datos de la factura. IMPORTANTE: Después de importar, configure el libro de trabajo (workbook), la hoja (worksheet) y la tabla (table) correspondiente.",
+      "credentials": {
+        "microsoftExcelOAuth2Api": {
+          "id": "excel-oauth2",
+          "name": "Microsoft Excel OAuth2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "operation": "upload",
+        "siteId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "folderId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "fileName": "={{ $('Estructurar Datos').item.json.numero_factura }}_{{ $('Estructurar Datos').item.json.proveedor }}.pdf",
+        "binaryPropertyName": "attachment_0",
+        "options": {}
+      },
+      "id": "a1b2c3d4-1111-4aaa-b111-000000000007",
+      "name": "SharePoint - Subir PDF",
+      "type": "n8n-nodes-base.microsoftSharePoint",
+      "typeVersion": 1,
+      "position": [1570, 200],
+      "notes": "Sube el archivo PDF original de la factura a SharePoint, renombrándolo con el número de factura y nombre del proveedor. IMPORTANTE: Configure el sitio, drive y carpeta de destino.",
+      "credentials": {
+        "microsoftSharePointOAuth2Api": {
+          "id": "sharepoint-oauth2",
+          "name": "Microsoft SharePoint OAuth2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "facturas@inmolawyer.com",
+        "toEmail": "contabilidad@inmolawyer.com",
+        "subject": "=Nueva Factura Registrada: {{ $('Estructurar Datos').item.json.numero_factura }} - {{ $('Estructurar Datos').item.json.proveedor }}",
+        "emailType": "html",
+        "html": "=<div style=\"font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;\"><h2 style=\"color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px;\">Nueva Factura Registrada</h2><table style=\"width: 100%; border-collapse: collapse; margin: 20px 0;\"><tr style=\"background-color: #f8f9fa;\"><td style=\"padding: 10px; font-weight: bold; border: 1px solid #dee2e6;\">Número de Factura</td><td style=\"padding: 10px; border: 1px solid #dee2e6;\">{{ $('Estructurar Datos').item.json.numero_factura }}</td></tr><tr><td style=\"padding: 10px; font-weight: bold; border: 1px solid #dee2e6;\">Proveedor</td><td style=\"padding: 10px; border: 1px solid #dee2e6;\">{{ $('Estructurar Datos').item.json.proveedor }}</td></tr><tr style=\"background-color: #f8f9fa;\"><td style=\"padding: 10px; font-weight: bold; border: 1px solid #dee2e6;\">NIT</td><td style=\"padding: 10px; border: 1px solid #dee2e6;\">{{ $('Estructurar Datos').item.json.nit_proveedor }}</td></tr><tr><td style=\"padding: 10px; font-weight: bold; border: 1px solid #dee2e6;\">Monto Total</td><td style=\"padding: 10px; border: 1px solid #dee2e6; font-size: 18px; color: #e74c3c; font-weight: bold;\">{{ $('Estructurar Datos').item.json.moneda }} ${{ $('Estructurar Datos').item.json.monto_total }}</td></tr><tr style=\"background-color: #f8f9fa;\"><td style=\"padding: 10px; font-weight: bold; border: 1px solid #dee2e6;\">Subtotal</td><td style=\"padding: 10px; border: 1px solid #dee2e6;\">{{ $('Estructurar Datos').item.json.moneda }} ${{ $('Estructurar Datos').item.json.subtotal }}</td></tr><tr><td style=\"padding: 10px; font-weight: bold; border: 1px solid #dee2e6;\">IVA</td><td style=\"padding: 10px; border: 1px solid #dee2e6;\">{{ $('Estructurar Datos').item.json.moneda }} ${{ $('Estructurar Datos').item.json.iva }}</td></tr><tr style=\"background-color: #f8f9fa;\"><td style=\"padding: 10px; font-weight: bold; border: 1px solid #dee2e6;\">Concepto</td><td style=\"padding: 10px; border: 1px solid #dee2e6;\">{{ $('Estructurar Datos').item.json.concepto }}</td></tr><tr><td style=\"padding: 10px; font-weight: bold; border: 1px solid #dee2e6;\">Fecha Emisión</td><td style=\"padding: 10px; border: 1px solid #dee2e6;\">{{ $('Estructurar Datos').item.json.fecha_emision }}</td></tr><tr style=\"background-color: #f8f9fa;\"><td style=\"padding: 10px; font-weight: bold; border: 1px solid #dee2e6;\">Fecha Vencimiento</td><td style=\"padding: 10px; border: 1px solid #dee2e6; color: #e67e22; font-weight: bold;\">{{ $('Estructurar Datos').item.json.fecha_vencimiento }}</td></tr><tr><td style=\"padding: 10px; font-weight: bold; border: 1px solid #dee2e6;\">Estado</td><td style=\"padding: 10px; border: 1px solid #dee2e6;\"><span style=\"background-color: #f39c12; color: white; padding: 3px 8px; border-radius: 4px;\">Pendiente</span></td></tr></table><p style=\"color: #7f8c8d; font-size: 12px;\">Registrada automáticamente el {{ $('Estructurar Datos').item.json.fecha_registro }} por el sistema de Automatización de Facturas - InmoLawyer.</p></div>",
+        "options": {}
+      },
+      "id": "a1b2c3d4-1111-4aaa-b111-000000000008",
+      "name": "Notificar Factura Registrada",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [1570, 400],
+      "notes": "Envía una notificación por correo electrónico al equipo de contabilidad con todos los datos de la factura registrada. IMPORTANTE: Configure las credenciales SMTP y las direcciones de correo.",
+      "credentials": {
+        "smtp": {
+          "id": "smtp-inmolawyer",
+          "name": "SMTP InmoLawyer"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 6
+            }
+          ]
+        }
+      },
+      "id": "a1b2c3d4-1111-4aaa-b111-000000000009",
+      "name": "Verificar Pagos (cada 6h)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [250, 700],
+      "notes": "Se ejecuta cada 6 horas para verificar si hay facturas pendientes que ya fueron pagadas, comparando el registro de Excel con los comprobantes en SharePoint."
+    },
+    {
+      "parameters": {
+        "resource": "table",
+        "operation": "getRows",
+        "workbook": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "worksheet": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "table": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "returnAll": true,
+        "filters": {
+          "filters": [
+            {
+              "field": "estado",
+              "value": "Pendiente"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a1b2c3d4-1111-4aaa-b111-000000000010",
+      "name": "Excel - Leer Facturas Pendientes",
+      "type": "n8n-nodes-base.microsoftExcel",
+      "typeVersion": 2.2,
+      "position": [470, 700],
+      "notes": "Lee todas las filas de la tabla de facturas en Excel 365 que tengan estado 'Pendiente'. IMPORTANTE: Configure el libro de trabajo, hoja y tabla correspondiente.",
+      "credentials": {
+        "microsoftExcelOAuth2Api": {
+          "id": "excel-oauth2",
+          "name": "Microsoft Excel OAuth2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "operation": "download",
+        "siteId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "folderId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "options": {}
+      },
+      "id": "a1b2c3d4-1111-4aaa-b111-000000000011",
+      "name": "SharePoint - Verificar Pagos",
+      "type": "n8n-nodes-base.microsoftSharePoint",
+      "typeVersion": 1,
+      "position": [690, 700],
+      "notes": "Descarga o lista los archivos de comprobantes de pago desde la carpeta de SharePoint designada para verificar cuáles facturas ya tienen soporte de pago. IMPORTANTE: Configure la carpeta de comprobantes de pago.",
+      "credentials": {
+        "microsoftSharePointOAuth2Api": {
+          "id": "sharepoint-oauth2",
+          "name": "Microsoft SharePoint OAuth2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Comparar Facturas Pendientes vs Comprobantes de Pago en SharePoint\n// Este nodo recibe las facturas pendientes de Excel y los archivos de SharePoint,\n// y determina cuáles facturas ya tienen comprobante de pago.\n\nconst facturasPendientes = $('Excel - Leer Facturas Pendientes').all();\nconst archivosSharePoint = $('SharePoint - Verificar Pagos').all();\n\n// Extraer nombres de archivos de comprobantes de pago\nconst nombresArchivos = archivosSharePoint.map(item => {\n  const nombre = (item.json.name || item.json.fileName || '').toLowerCase();\n  return nombre;\n});\n\nconst resultados = [];\n\nfor (const factura of facturasPendientes) {\n  const numeroFactura = (factura.json.numero_factura || '').toString().toLowerCase().trim();\n  const proveedor = (factura.json.proveedor || '').toString().toLowerCase().trim();\n\n  // Buscar si existe un comprobante de pago que coincida con el número de factura\n  // Se busca por número de factura en el nombre del archivo\n  const comprobanteEncontrado = nombresArchivos.some(archivo => {\n    // Verificar si el nombre del archivo contiene el número de factura\n    const contieneNumero = archivo.includes(numeroFactura);\n    // Verificar si contiene palabras clave de pago\n    const esPago = archivo.includes('pago') ||\n                   archivo.includes('comprobante') ||\n                   archivo.includes('recibo') ||\n                   archivo.includes('transferencia') ||\n                   archivo.includes('consignacion');\n    return contieneNumero && esPago;\n  });\n\n  resultados.push({\n    json: {\n      numero_factura: factura.json.numero_factura,\n      proveedor: factura.json.proveedor,\n      monto_total: factura.json.monto_total,\n      fecha_vencimiento: factura.json.fecha_vencimiento,\n      estado_actual: factura.json.estado,\n      pagada: comprobanteEncontrado,\n      fecha_verificacion: new Date().toISOString(),\n      // Preservar el índice de fila para poder actualizar en Excel\n      row_index: factura.json.row_index || factura.json.__rowIndex || null\n    }\n  });\n}\n\n// Si no hay facturas pendientes, retornar un mensaje informativo\nif (resultados.length === 0) {\n  return [{\n    json: {\n      mensaje: 'No hay facturas pendientes para verificar',\n      pagada: false,\n      fecha_verificacion: new Date().toISOString()\n    }\n  }];\n}\n\nreturn resultados;"
+      },
+      "id": "a1b2c3d4-1111-4aaa-b111-000000000012",
+      "name": "Comparar Facturas vs Pagos",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [910, 700],
+      "notes": "Compara los números de factura de las facturas pendientes en Excel contra los archivos de comprobante de pago encontrados en SharePoint, determinando cuáles ya fueron pagadas."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition-pagada",
+              "leftValue": "={{ $json.pagada }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "a1b2c3d4-1111-4aaa-b111-000000000013",
+      "name": "¿Factura Pagada?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1130, 700],
+      "notes": "Evalúa si la factura fue marcada como pagada por el nodo de comparación. Las facturas pagadas (rama verdadera) se actualizan en Excel."
+    },
+    {
+      "parameters": {
+        "resource": "worksheet",
+        "operation": "update",
+        "workbook": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "worksheet": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "dataMode": "defineBelow",
+        "fieldsUi": {
+          "values": [
+            {
+              "column": "estado",
+              "fieldValue": "Pagada"
+            },
+            {
+              "column": "fecha_pago",
+              "fieldValue": "={{ $now.toISO() }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a1b2c3d4-1111-4aaa-b111-000000000014",
+      "name": "Excel - Marcar Pagada",
+      "type": "n8n-nodes-base.microsoftExcel",
+      "typeVersion": 2.2,
+      "position": [1350, 700],
+      "notes": "Actualiza el estado de la factura a 'Pagada' y registra la fecha de pago en la hoja de Excel. IMPORTANTE: Configure el libro de trabajo y la hoja correspondiente.",
+      "credentials": {
+        "microsoftExcelOAuth2Api": {
+          "id": "excel-oauth2",
+          "name": "Microsoft Excel OAuth2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 8 * * *"
+            }
+          ]
+        }
+      },
+      "id": "a1b2c3d4-1111-4aaa-b111-000000000015",
+      "name": "Dashboard Diario 8AM",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [250, 1100],
+      "notes": "Se ejecuta todos los días a las 8:00 AM para generar el dashboard de métricas de facturación."
+    },
+    {
+      "parameters": {
+        "resource": "table",
+        "operation": "getRows",
+        "workbook": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "worksheet": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "table": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "returnAll": true,
+        "options": {}
+      },
+      "id": "a1b2c3d4-1111-4aaa-b111-000000000016",
+      "name": "Excel - Leer Histórico",
+      "type": "n8n-nodes-base.microsoftExcel",
+      "typeVersion": 2.2,
+      "position": [470, 1100],
+      "notes": "Lee todas las filas del histórico de facturas en Excel para calcular las métricas del dashboard. IMPORTANTE: Configure el libro de trabajo, hoja y tabla correspondiente.",
+      "credentials": {
+        "microsoftExcelOAuth2Api": {
+          "id": "excel-oauth2",
+          "name": "Microsoft Excel OAuth2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Calcular Métricas del Dashboard de Facturación\n// Este nodo procesa el histórico completo de facturas y genera métricas\n// para los últimos 3 meses: totales, promedios, desglose por proveedor y comparaciones.\n\nconst todasLasFacturas = $input.all();\nconst hoy = new Date();\n\n// Obtener los últimos 3 meses en formato YYYY-MM\nconst obtenerUltimos3Meses = () => {\n  const meses = [];\n  for (let i = 0; i < 3; i++) {\n    const fecha = new Date(hoy.getFullYear(), hoy.getMonth() - i, 1);\n    const mes = fecha.toISOString().slice(0, 7);\n    meses.push(mes);\n  }\n  return meses;\n};\n\nconst mesesAnalisis = obtenerUltimos3Meses();\nconst nombresMeses = {\n  '01': 'Enero', '02': 'Febrero', '03': 'Marzo', '04': 'Abril',\n  '05': 'Mayo', '06': 'Junio', '07': 'Julio', '08': 'Agosto',\n  '09': 'Septiembre', '10': 'Octubre', '11': 'Noviembre', '12': 'Diciembre'\n};\n\n// Inicializar estructura de datos por mes\nconst datosPorMes = {};\nmesesAnalisis.forEach(mes => {\n  datosPorMes[mes] = {\n    facturas: [],\n    totalFacturado: 0,\n    cantidadFacturas: 0,\n    promedioPorFactura: 0,\n    proveedores: {},\n    pendientes: 0,\n    pagadas: 0,\n    totalIVA: 0\n  };\n});\n\n// Procesar cada factura\nfor (const item of todasLasFacturas) {\n  const factura = item.json;\n  const mesFactura = (factura.mes || factura.fecha_emision || '').toString().slice(0, 7);\n\n  if (datosPorMes[mesFactura]) {\n    const monto = parseFloat(factura.monto_total) || 0;\n    const iva = parseFloat(factura.iva) || 0;\n    const proveedor = factura.proveedor || 'Sin proveedor';\n    const estado = (factura.estado || '').toString().toLowerCase();\n\n    datosPorMes[mesFactura].facturas.push(factura);\n    datosPorMes[mesFactura].totalFacturado += monto;\n    datosPorMes[mesFactura].cantidadFacturas += 1;\n    datosPorMes[mesFactura].totalIVA += iva;\n\n    // Desglose por proveedor\n    if (!datosPorMes[mesFactura].proveedores[proveedor]) {\n      datosPorMes[mesFactura].proveedores[proveedor] = {\n        total: 0,\n        cantidad: 0\n      };\n    }\n    datosPorMes[mesFactura].proveedores[proveedor].total += monto;\n    datosPorMes[mesFactura].proveedores[proveedor].cantidad += 1;\n\n    // Conteo por estado\n    if (estado === 'pagada' || estado === 'pagado') {\n      datosPorMes[mesFactura].pagadas += 1;\n    } else {\n      datosPorMes[mesFactura].pendientes += 1;\n    }\n  }\n}\n\n// Calcular promedios\nfor (const mes of mesesAnalisis) {\n  const datos = datosPorMes[mes];\n  datos.promedioPorFactura = datos.cantidadFacturas > 0\n    ? Math.round(datos.totalFacturado / datos.cantidadFacturas)\n    : 0;\n  datos.totalFacturado = Math.round(datos.totalFacturado);\n  datos.totalIVA = Math.round(datos.totalIVA);\n}\n\n// Calcular comparaciones porcentuales mes a mes\nconst comparaciones = [];\nfor (let i = 0; i < mesesAnalisis.length - 1; i++) {\n  const mesActual = mesesAnalisis[i];\n  const mesAnterior = mesesAnalisis[i + 1];\n  const totalActual = datosPorMes[mesActual].totalFacturado;\n  const totalAnterior = datosPorMes[mesAnterior].totalFacturado;\n\n  let variacionPorcentual = 0;\n  if (totalAnterior > 0) {\n    variacionPorcentual = Math.round(((totalActual - totalAnterior) / totalAnterior) * 10000) / 100;\n  }\n\n  comparaciones.push({\n    mes_actual: mesActual,\n    mes_anterior: mesAnterior,\n    variacion_porcentual: variacionPorcentual,\n    diferencia_absoluta: totalActual - totalAnterior,\n    tendencia: variacionPorcentual > 0 ? 'AUMENTO' : variacionPorcentual < 0 ? 'DISMINUCION' : 'ESTABLE'\n  });\n}\n\n// Contar totales globales de pendientes y pagadas\nlet totalPendientesGlobal = 0;\nlet totalPagadasGlobal = 0;\nlet montoPendienteGlobal = 0;\n\nfor (const item of todasLasFacturas) {\n  const factura = item.json;\n  const estado = (factura.estado || '').toString().toLowerCase();\n  if (estado === 'pagada' || estado === 'pagado') {\n    totalPagadasGlobal += 1;\n  } else {\n    totalPendientesGlobal += 1;\n    montoPendienteGlobal += parseFloat(factura.monto_total) || 0;\n  }\n}\n\n// Construir desglose por proveedor para cada mes\nconst desglosePorMes = {};\nfor (const mes of mesesAnalisis) {\n  const partesMes = mes.split('-');\n  const nombreMes = nombresMeses[partesMes[1]] + ' ' + partesMes[0];\n  desglosePorMes[nombreMes] = {\n    total_facturado: datosPorMes[mes].totalFacturado,\n    cantidad_facturas: datosPorMes[mes].cantidadFacturas,\n    promedio_por_factura: datosPorMes[mes].promedioPorFactura,\n    total_iva: datosPorMes[mes].totalIVA,\n    pendientes: datosPorMes[mes].pendientes,\n    pagadas: datosPorMes[mes].pagadas,\n    proveedores: Object.entries(datosPorMes[mes].proveedores).map(([nombre, datos]) => ({\n      nombre,\n      total: Math.round(datos.total),\n      cantidad: datos.cantidad,\n      porcentaje_del_total: datosPorMes[mes].totalFacturado > 0\n        ? Math.round((datos.total / datosPorMes[mes].totalFacturado) * 10000) / 100\n        : 0\n    })).sort((a, b) => b.total - a.total)\n  };\n}\n\n// Resultado final del dashboard\nreturn {\n  json: {\n    dashboard_generado: new Date().toISOString(),\n    periodo_analisis: {\n      desde: mesesAnalisis[mesesAnalisis.length - 1],\n      hasta: mesesAnalisis[0]\n    },\n    resumen_global: {\n      total_facturas: todasLasFacturas.length,\n      facturas_pendientes: totalPendientesGlobal,\n      facturas_pagadas: totalPagadasGlobal,\n      monto_pendiente_total: Math.round(montoPendienteGlobal),\n      porcentaje_pagado: todasLasFacturas.length > 0\n        ? Math.round((totalPagadasGlobal / todasLasFacturas.length) * 10000) / 100\n        : 0\n    },\n    metricas_por_mes: desglosePorMes,\n    comparaciones_mes_a_mes: comparaciones\n  }\n};"
+      },
+      "id": "a1b2c3d4-1111-4aaa-b111-000000000017",
+      "name": "Calcular Métricas Dashboard",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [690, 1100],
+      "notes": "Calcula métricas del dashboard: total facturado por mes (últimos 3 meses), cantidad y promedio de facturas, desglose por proveedor, comparación porcentual mes a mes, y conteo de pendientes vs pagadas."
+    },
+    {
+      "parameters": {
+        "resource": "worksheet",
+        "operation": "update",
+        "workbook": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "worksheet": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "dataMode": "defineBelow",
+        "fieldsUi": {
+          "values": [
+            {
+              "column": "A",
+              "fieldValue": "=Dashboard actualizado: {{ $json.dashboard_generado }}"
+            },
+            {
+              "column": "B",
+              "fieldValue": "={{ JSON.stringify($json.resumen_global) }}"
+            },
+            {
+              "column": "C",
+              "fieldValue": "={{ JSON.stringify($json.metricas_por_mes) }}"
+            },
+            {
+              "column": "D",
+              "fieldValue": "={{ JSON.stringify($json.comparaciones_mes_a_mes) }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a1b2c3d4-1111-4aaa-b111-000000000018",
+      "name": "Excel - Actualizar Dashboard",
+      "type": "n8n-nodes-base.microsoftExcel",
+      "typeVersion": 2.2,
+      "position": [910, 1100],
+      "notes": "Escribe las métricas calculadas en la hoja 'Dashboard' del libro de Excel. IMPORTANTE: Configure el libro de trabajo y cree una hoja llamada 'Dashboard' para recibir los datos.",
+      "credentials": {
+        "microsoftExcelOAuth2Api": {
+          "id": "excel-oauth2",
+          "name": "Microsoft Excel OAuth2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "claude-sonnet-4-20250514",
+        "options": {
+          "maxTokensToSample": 4096,
+          "temperature": 0.1
+        }
+      },
+      "id": "a1b2c3d4-1111-4aaa-b111-000000000019",
+      "name": "Claude Sonnet",
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.2,
+      "position": [930, 500],
+      "notes": "Modelo de IA Claude Sonnet utilizado por el nodo Information Extractor para analizar el texto del PDF y extraer los datos estructurados de la factura.",
+      "credentials": {
+        "anthropicApi": {
+          "id": "anthropic-api",
+          "name": "Anthropic API"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Outlook - Nuevas Facturas": {
+      "main": [
+        [
+          {
+            "node": "¿Es PDF?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Es PDF?": {
+      "main": [
+        [
+          {
+            "node": "Extraer Texto PDF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extraer Texto PDF": {
+      "main": [
+        [
+          {
+            "node": "IA - Extraer Datos Factura",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IA - Extraer Datos Factura": {
+      "main": [
+        [
+          {
+            "node": "Estructurar Datos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Estructurar Datos": {
+      "main": [
+        [
+          {
+            "node": "Excel - Registrar Factura",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Excel - Registrar Factura": {
+      "main": [
+        [
+          {
+            "node": "SharePoint - Subir PDF",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Notificar Factura Registrada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verificar Pagos (cada 6h)": {
+      "main": [
+        [
+          {
+            "node": "Excel - Leer Facturas Pendientes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Excel - Leer Facturas Pendientes": {
+      "main": [
+        [
+          {
+            "node": "SharePoint - Verificar Pagos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SharePoint - Verificar Pagos": {
+      "main": [
+        [
+          {
+            "node": "Comparar Facturas vs Pagos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Comparar Facturas vs Pagos": {
+      "main": [
+        [
+          {
+            "node": "¿Factura Pagada?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Factura Pagada?": {
+      "main": [
+        [
+          {
+            "node": "Excel - Marcar Pagada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Dashboard Diario 8AM": {
+      "main": [
+        [
+          {
+            "node": "Excel - Leer Histórico",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Excel - Leer Histórico": {
+      "main": [
+        [
+          {
+            "node": "Calcular Métricas Dashboard",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calcular Métricas Dashboard": {
+      "main": [
+        [
+          {
+            "node": "Excel - Actualizar Dashboard",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claude Sonnet": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "IA - Extraer Datos Factura",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "name": "InmoLawyer",
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z"
+    },
+    {
+      "name": "Facturas",
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z"
+    },
+    {
+      "name": "Automatización",
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z"
+    }
+  ],
+  "pinData": {},
+  "versionId": "1"
+}

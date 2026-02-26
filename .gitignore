@@ -1,0 +1,28 @@
+# Claude Code internal files (may contain API keys/session data)
+.claude/
+
+# Server config notes with IPs
+FIX_CADDY_TIMEOUT.md
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Node / npm (if added later)
+node_modules/
+dist/
+.npm
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+*.log
+npm-debug.log*

@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InmoLawyer - Analisis de Contratos de Arrendamiento</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+    <!-- ===== PANTALLA DE AUTH (Login / Registro) ===== -->
+    <div id="authSection" class="auth-screen" style="display:none">
+        <div class="auth-card">
+            <div class="auth-logo">
+                <i class="fas fa-balance-scale"></i>
+                <h1>InmoLawyer</h1>
+            </div>
+            <p class="auth-tagline">Analizá contratos de arrendamiento con IA legal</p>
+
+            <!-- Tabs -->
+            <div class="auth-tabs">
+                <button class="auth-tab-btn active" data-tab="login">Iniciar sesión</button>
+                <button class="auth-tab-btn" data-tab="register">Registrarse</button>
+            </div>
+
+            <!-- Form Login -->
+            <form id="loginForm" class="auth-form">
+                <div class="form-group">
+                    <label for="loginEmail">Email</label>
+                    <input type="email" id="loginEmail" placeholder="tu@email.com" required autocomplete="email">
+                </div>
+                <div class="form-group">
+                    <label for="loginPassword">Contraseña</label>
+                    <input type="password" id="loginPassword" placeholder="••••••••" required autocomplete="current-password">
+                </div>
+                <p class="auth-error" id="loginError" style="display:none"></p>
+                <button type="submit" id="loginBtn" class="btn-auth">
+                    <i class="fas fa-sign-in-alt"></i> Iniciar sesión
+                </button>
+            </form>
+
+            <!-- Form Registro -->
+            <form id="registerForm" class="auth-form" style="display:none">
+                <div class="form-group">
+                    <label for="registerName">Nombre completo</label>
+                    <input type="text" id="registerName" placeholder="Tu nombre" required autocomplete="name">
+                </div>
+                <div class="form-group">
+                    <label for="registerEmail">Email</label>
+                    <input type="email" id="registerEmail" placeholder="tu@email.com" required autocomplete="email">
+                </div>
+                <div class="form-group">
+                    <label for="registerPassword">Contraseña</label>
+                    <input type="password" id="registerPassword" placeholder="Mínimo 6 caracteres" required minlength="6" autocomplete="new-password">
+                </div>
+                <p class="auth-error" id="registerError" style="display:none"></p>
+                <button type="submit" id="registerBtn" class="btn-auth">
+                    <i class="fas fa-user-plus"></i> Crear cuenta
+                </button>
+            </form>
+
+            <p class="auth-footer-note">🔒 Tus contratos son privados y solo tú los puedes ver</p>
+        </div>
+    </div>
+
+    <!-- ===== APP PRINCIPAL (visible solo cuando está autenticado) ===== -->
+    <div id="appContainer" class="app-container" style="display:none">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="logo">
+                <i class="fas fa-balance-scale"></i>
+                <span>InmoLawyer</span>
+            </div>
+            <p class="tagline">Analisis de Contratos de Arrendamiento - Ley 820 de 2003</p>
+            <div class="user-bar">
+                <span class="user-email-badge" id="userEmailDisplay"></span>
+                <button id="logoutBtn" class="btn-logout">
+                    <i class="fas fa-sign-out-alt"></i> Salir
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Upload Section -->
+            <section class="upload-section" id="uploadSection">
+                <div class="upload-card">
+                    <div class="upload-icon">
+                        <i class="fas fa-file-contract"></i>
+                    </div>
+                    <h2>Analiza tu Contrato de Arrendamiento</h2>
+                    <p>Sube tu contrato y descubre en segundos si tiene clausulas abusivas o ilegales segun la Ley 820 de 2003</p>
+
+                    <div class="upload-zone" id="uploadZone">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        <h3>Arrastra tu contrato aqui</h3>
+                        <p>o haz clic para seleccionar</p>
+                        <span class="file-types">PDF, DOCX, TXT</span>
+                    </div>
+                    <input type="file" id="fileInput" accept=".pdf,.doc,.docx,.txt" hidden>
+
+                    <!-- Banner de error / documento no válido -->
+                    <div class="error-banner" id="errorBanner" style="display: none;">
+                        <div class="error-banner-header">
+                            <i class="fas fa-exclamation-circle"></i>
+                            <strong id="errorBannerTitle">Documento no compatible</strong>
+                            <button class="error-banner-close" onclick="hideErrorBanner()"><i class="fas fa-times"></i></button>
+                        </div>
+                        <p id="errorBannerMsg"></p>
+                    </div>
+
+                    <div class="upload-features">
+                        <div class="feature">
+                            <i class="fas fa-shield-alt"></i>
+                            <span>100% Confidencial</span>
+                        </div>
+                        <div class="feature">
+                            <i class="fas fa-bolt"></i>
+                            <span>Analisis en segundos</span>
+                        </div>
+                        <div class="feature">
+                            <i class="fas fa-gavel"></i>
+                            <span>Basado en Ley 820</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Loading State -->
+            <section class="loading-section" id="loadingSection" style="display: none;">
+                <div class="loading-card">
+                    <div class="spinner"></div>
+                    <h3>Analizando tu contrato...</h3>
+                    <p id="loadingStatus">Extrayendo texto del documento</p>
+                    <div class="loading-steps">
+                        <div class="step active" id="step1">
+                            <i class="fas fa-file-alt"></i>
+                            <span>Leyendo documento</span>
+                        </div>
+                        <div class="step" id="step2">
+                            <i class="fas fa-search"></i>
+                            <span>Extrayendo datos</span>
+                        </div>
+                        <div class="step" id="step3">
+                            <i class="fas fa-brain"></i>
+                            <span>Analizando clausulas</span>
+                        </div>
+                        <div class="step" id="step4">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Generando reporte</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Results Section -->
+            <section class="results-section" id="resultsSection" style="display: none;">
+                <!-- Risk Score -->
+                <div class="risk-score-card" id="riskScoreCard">
+                    <div class="score-circle" id="scoreCircle">
+                        <span class="score-value" id="scoreValue">--</span>
+                        <span class="score-label">Riesgo</span>
+                    </div>
+                    <div class="score-info">
+                        <h2 id="scoreTitle">Analizando...</h2>
+                        <p id="scoreDescription">Evaluando el contrato</p>
+                    </div>
+                    <div class="score-actions">
+                        <button class="btn-new-analysis" id="btnNewAnalysis">
+                            <i class="fas fa-redo"></i> Nuevo Analisis
+                        </button>
+                        <button class="btn-download-pdf" id="btnDownloadPdf">
+                            <i class="fas fa-file-pdf"></i> Descargar PDF
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Contract Data -->
+                <div class="data-grid">
+                    <!-- Parties -->
+                    <div class="data-card parties-card">
+                        <h3><i class="fas fa-users"></i> Partes del Contrato</h3>
+                        <div class="parties-container">
+                            <div class="party arrendador">
+                                <div class="party-icon"><i class="fas fa-building"></i></div>
+                                <div class="party-info">
+                                    <label>Arrendador</label>
+                                    <span id="arrendadorNombre">-</span>
+                                    <small id="arrendadorDoc">-</small>
+                                </div>
+                            </div>
+                            <div class="party arrendatario">
+                                <div class="party-icon"><i class="fas fa-user"></i></div>
+                                <div class="party-info">
+                                    <label>Arrendatario</label>
+                                    <span id="arrendatarioNombre">-</span>
+                                    <small id="arrendatarioDoc">-</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Deudores Solidarios -->
+                    <div class="data-card deudores-card" id="deudoresCard" style="display: none;">
+                        <h3><i class="fas fa-user-shield"></i> Deudores Solidarios / Fiadores</h3>
+                        <div class="deudores-container" id="deudoresContainer">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+
+                    <!-- Property -->
+                    <div class="data-card property-card">
+                        <h3><i class="fas fa-home"></i> Inmueble</h3>
+                        <div class="property-info">
+                            <div class="info-row">
+                                <i class="fas fa-map-marker-alt"></i>
+                                <span id="direccion">-</span>
+                            </div>
+                            <div class="info-row">
+                                <i class="fas fa-city"></i>
+                                <span id="ciudad">-</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Contract Details -->
+                    <div class="data-card details-card">
+                        <h3><i class="fas fa-file-invoice-dollar"></i> Detalles</h3>
+                        <div class="details-grid">
+                            <div class="detail">
+                                <label>Canon Mensual</label>
+                                <span id="canon">-</span>
+                            </div>
+                            <div class="detail">
+                                <label>Fecha Inicio</label>
+                                <span id="fechaInicio">-</span>
+                            </div>
+                            <div class="detail">
+                                <label>Duracion</label>
+                                <span id="duracion">-</span>
+                            </div>
+                            <div class="detail">
+                                <label>Vencimiento</label>
+                                <span id="vencimiento">-</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Alerts Section -->
+                <div class="alerts-section">
+                    <h3><i class="fas fa-exclamation-triangle"></i> Alertas del Analisis</h3>
+                    <div class="alerts-container" id="alertsContainer">
+                        <!-- Alerts will be populated here -->
+                    </div>
+                </div>
+
+                <!-- Increments Section -->
+                <div class="increments-section">
+                    <h3><i class="fas fa-chart-line"></i> Incrementos Anuales (IPC)</h3>
+                    <div class="increments-summary">
+                        <div class="increment-highlight">
+                            <label>Proximo Incremento Permitido</label>
+                            <span id="proximoIncremento">-</span>
+                            <small id="ipcInfo">Basado en IPC DANE</small>
+                        </div>
+                    </div>
+                    <div class="increments-table-container">
+                        <table class="increments-table" id="incrementsTable">
+                            <thead>
+                                <tr>
+                                    <th>Año</th>
+                                    <th>IPC</th>
+                                    <th>Canon Anterior</th>
+                                    <th>Incremento</th>
+                                    <th>Canon Nuevo</th>
+                                </tr>
+                            </thead>
+                            <tbody id="incrementsBody">
+                                <!-- Rows will be populated here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Important Dates -->
+                <div class="dates-section">
+                    <h3><i class="fas fa-calendar-alt"></i> Fechas Importantes</h3>
+                    <div class="dates-grid">
+                        <div class="date-card warning">
+                            <i class="fas fa-percentage"></i>
+                            <div class="date-info">
+                                <label>Notificar Incremento</label>
+                                <span id="fechaNotifIncremento">-</span>
+                                <small>1 mes antes del aniversario</small>
+                            </div>
+                        </div>
+                        <div class="date-card danger">
+                            <i class="fas fa-door-open"></i>
+                            <div class="date-info">
+                                <label>Notificar Terminacion</label>
+                                <span id="fechaNotifTerminacion">-</span>
+                                <small>3 meses antes (Art. 24)</small>
+                            </div>
+                        </div>
+                        <div class="date-card info">
+                            <i class="fas fa-calendar-check"></i>
+                            <div class="date-info">
+                                <label>Proximo Incremento</label>
+                                <span id="fechaProximoIncremento">-</span>
+                                <small>Aniversario del contrato</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Chat Section -->
+                <div class="chat-section">
+                    <h3><i class="fas fa-comments"></i> Consulta con tu Abogado Virtual</h3>
+                    <p class="chat-intro">Preguntame lo que quieras sobre tu contrato. Te respondo con fundamento en la Ley 820 de 2003 y te doy modelos de comunicacion si los necesitas.</p>
+
+                    <div class="chat-container" id="chatContainer">
+                        <div class="chat-messages" id="chatMessages">
+                            <div class="message assistant">
+                                <div class="avatar"><i class="fas fa-balance-scale"></i></div>
+                                <div class="content">
+                                    <p>Soy tu abogado virtual especializado en arrendamientos. Ya analice tu contrato. Puedes preguntarme:</p>
+                                    <ul>
+                                        <li>"Es legal el deposito que me piden?"</li>
+                                        <li>"Como notifico que quiero terminar el contrato?"</li>
+                                        <li>"Pueden subirme el arriendo mas del IPC?"</li>
+                                        <li>"Que clausulas son abusivas?"</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="chat-input-container">
+                            <input type="text" id="chatInput" placeholder="Escribe tu pregunta legal aqui..." autocomplete="off">
+                            <button id="sendBtn" class="btn-send">
+                                <i class="fas fa-paper-plane"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Contract Text (Collapsible) -->
+                <div class="contract-text-section">
+                    <button class="collapse-btn" id="toggleContractText">
+                        <i class="fas fa-chevron-down"></i>
+                        <span>Ver texto del contrato</span>
+                    </button>
+                    <div class="contract-text-container" id="contractTextContainer" style="display: none;">
+                        <pre id="contractText"></pre>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="app-footer">
+            <p>InmoLawyer v2.0 - Analisis basado en Ley 820 de 2003 (Colombia)</p>
+            <p class="disclaimer">Este analisis es informativo y no constituye asesoria legal profesional.</p>
+        </footer>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js"></script>
+    <script src="auth.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

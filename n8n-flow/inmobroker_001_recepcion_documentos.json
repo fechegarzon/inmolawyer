@@ -1,0 +1,350 @@
+{
+  "name": "InmoBroker 001 - Recepción de Documentos",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "inmobroker/recepcion",
+        "responseMode": "responseNode",
+        "options": {
+          "rawBody": true
+        }
+      },
+      "id": "webhook-recepcion",
+      "name": "Webhook - Recepción Formulario",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "inmobroker-recepcion"
+    },
+    {
+      "parameters": {
+        "jsCode": "// InmoBroker - Validación y Estructuración de Datos v1.0\nconst input = $input.first().json;\nconst body = input.body || input;\n\n// Extraer datos del formulario\nconst datos = {\n  // Datos del inquilino (titular)\n  inquilino: {\n    cedula: body.inquilino_cedula || body.cedula || '',\n    nombre: body.inquilino_nombre || body.nombre || '',\n    email: body.inquilino_email || body.email || '',\n    telefono: body.inquilino_telefono || body.telefono || '',\n  },\n  \n  // Datos del inmueble\n  inmueble: {\n    direccion: body.direccion || '',\n    ciudad: body.ciudad || '',\n    canon_mensual: parseFloat(body.canon_mensual) || 0,\n  },\n  \n  // Deudor solidario 1 (obligatorio)\n  deudor1: {\n    cedula: body.deudor1_cedula || '',\n    nombre: body.deudor1_nombre || '',\n    telefono: body.deudor1_telefono || '',\n  },\n  \n  // Deudor solidario 2 (solo si canon > 5M)\n  deudor2: {\n    cedula: body.deudor2_cedula || null,\n    nombre: body.deudor2_nombre || null,\n    telefono: body.deudor2_telefono || null,\n  },\n  \n  // Archivos recibidos (base64 o URLs)\n  documentos: {\n    cedula_inquilino: body.doc_cedula_inquilino || null,\n    extractos_bancarios: body.doc_extractos || [],\n    certificado_laboral: body.doc_certificado_laboral || null,\n    declaracion_renta: body.doc_declaracion_renta || null,\n    cedula_deudor1: body.doc_cedula_deudor1 || null,\n    extractos_deudor1: body.doc_extractos_deudor1 || [],\n    cedula_deudor2: body.doc_cedula_deudor2 || null,\n    extractos_deudor2: body.doc_extractos_deudor2 || [],\n  },\n  \n  // Metadatos\n  solicitud_id: body.inquilino_cedula || body.cedula || `SOL-${Date.now()}`,\n  fecha_recepcion: new Date().toISOString(),\n  requiere_deudor2: (parseFloat(body.canon_mensual) || 0) > 5000000,\n};\n\n// Validaciones\nconst errores = [];\n\nif (!datos.inquilino.cedula) errores.push('Falta cédula del inquilino');\nif (!datos.inquilino.nombre) errores.push('Falta nombre del inquilino');\nif (!datos.inquilino.email) errores.push('Falta email del inquilino');\nif (!datos.inmueble.canon_mensual) errores.push('Falta canon mensual');\nif (!datos.deudor1.cedula) errores.push('Falta cédula del deudor solidario 1');\n\n// Validar deudor 2 si aplica\nif (datos.requiere_deudor2 && !datos.deudor2.cedula) {\n  errores.push('Canon > $5M requiere segundo deudor solidario');\n}\n\n// Validar documentos mínimos\nif (!datos.documentos.cedula_inquilino) errores.push('Falta foto de cédula del inquilino');\nif (!datos.documentos.extractos_bancarios || datos.documentos.extractos_bancarios.length < 3) {\n  errores.push('Se requieren 3 extractos bancarios');\n}\nif (!datos.documentos.certificado_laboral && !datos.documentos.declaracion_renta) {\n  errores.push('Se requiere certificado laboral o declaración de renta');\n}\n\nreturn {\n  json: {\n    valido: errores.length === 0,\n    errores: errores,\n    datos: datos,\n    solicitud_id: datos.solicitud_id\n  }\n};"
+      },
+      "id": "validar-datos",
+      "name": "Validar Datos Recibidos",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "validacion-ok",
+              "leftValue": "={{ $json.valido }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-validacion",
+      "name": "¿Datos Válidos?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ success: false, error: 'Validación fallida', errores: $json.errores, solicitud_id: $json.solicitud_id }) }}"
+      },
+      "id": "respuesta-error-validacion",
+      "name": "Respuesta Error Validación",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [900, 500]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "operation": "createFolder",
+        "folderName": "={{ $json.solicitud_id }}",
+        "parentFolder": {
+          "__rl": true,
+          "value": "root",
+          "mode": "list"
+        },
+        "options": {}
+      },
+      "id": "crear-carpeta-drive",
+      "name": "Crear Carpeta en Drive",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [900, 200],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "google-drive-oauth",
+          "name": "Google Drive OAuth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Preparar documentos para subir a Drive\nconst datos = $('Validar Datos Recibidos').first().json.datos;\nconst carpetaId = $('Crear Carpeta en Drive').first().json.id;\nconst solicitudId = datos.solicitud_id;\n\nconst documentosParaSubir = [];\n\n// Función para agregar documento si existe\nconst agregarDoc = (doc, nombre, tipo) => {\n  if (doc) {\n    documentosParaSubir.push({\n      contenido: doc,\n      nombre: `${solicitudId}_${nombre}`,\n      tipo: tipo,\n      carpeta_id: carpetaId\n    });\n  }\n};\n\n// Documentos del inquilino\nagregarDoc(datos.documentos.cedula_inquilino, 'cedula_inquilino', 'cedula');\nagregarDoc(datos.documentos.certificado_laboral, 'certificado_laboral', 'certificado');\nagregarDoc(datos.documentos.declaracion_renta, 'declaracion_renta', 'declaracion');\n\n// Extractos bancarios del inquilino\nif (datos.documentos.extractos_bancarios && Array.isArray(datos.documentos.extractos_bancarios)) {\n  datos.documentos.extractos_bancarios.forEach((extracto, i) => {\n    agregarDoc(extracto, `extracto_inquilino_${i+1}`, 'extracto');\n  });\n}\n\n// Documentos deudor 1\nagregarDoc(datos.documentos.cedula_deudor1, 'cedula_deudor1', 'cedula');\nif (datos.documentos.extractos_deudor1 && Array.isArray(datos.documentos.extractos_deudor1)) {\n  datos.documentos.extractos_deudor1.forEach((extracto, i) => {\n    agregarDoc(extracto, `extracto_deudor1_${i+1}`, 'extracto');\n  });\n}\n\n// Documentos deudor 2 (si aplica)\nif (datos.requiere_deudor2) {\n  agregarDoc(datos.documentos.cedula_deudor2, 'cedula_deudor2', 'cedula');\n  if (datos.documentos.extractos_deudor2 && Array.isArray(datos.documentos.extractos_deudor2)) {\n    datos.documentos.extractos_deudor2.forEach((extracto, i) => {\n      agregarDoc(extracto, `extracto_deudor2_${i+1}`, 'extracto');\n    });\n  }\n}\n\nreturn documentosParaSubir.map(doc => ({ json: doc }));"
+      },
+      "id": "preparar-documentos",
+      "name": "Preparar Documentos para Drive",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 200]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "operation": "upload",
+        "name": "={{ $json.nombre }}",
+        "parents": {
+          "__rl": true,
+          "value": "={{ $json.carpeta_id }}",
+          "mode": "id"
+        },
+        "binaryPropertyName": "data",
+        "options": {}
+      },
+      "id": "subir-archivos-drive",
+      "name": "Subir Archivos a Drive",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [1340, 200],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "google-drive-oauth",
+          "name": "Google Drive OAuth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "={{$env.INMOBROKER_SHEETS_ID}}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Solicitudes",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Fecha": "={{ $('Validar Datos Recibidos').first().json.datos.fecha_recepcion }}",
+            "Solicitud ID": "={{ $('Validar Datos Recibidos').first().json.datos.solicitud_id }}",
+            "Inquilino Nombre": "={{ $('Validar Datos Recibidos').first().json.datos.inquilino.nombre }}",
+            "Inquilino Cedula": "={{ $('Validar Datos Recibidos').first().json.datos.inquilino.cedula }}",
+            "Inquilino Email": "={{ $('Validar Datos Recibidos').first().json.datos.inquilino.email }}",
+            "Inquilino Telefono": "={{ $('Validar Datos Recibidos').first().json.datos.inquilino.telefono }}",
+            "Direccion": "={{ $('Validar Datos Recibidos').first().json.datos.inmueble.direccion }}",
+            "Ciudad": "={{ $('Validar Datos Recibidos').first().json.datos.inmueble.ciudad }}",
+            "Canon Mensual": "={{ $('Validar Datos Recibidos').first().json.datos.inmueble.canon_mensual }}",
+            "Deudor1 Nombre": "={{ $('Validar Datos Recibidos').first().json.datos.deudor1.nombre }}",
+            "Deudor1 Cedula": "={{ $('Validar Datos Recibidos').first().json.datos.deudor1.cedula }}",
+            "Deudor2 Nombre": "={{ $('Validar Datos Recibidos').first().json.datos.deudor2.nombre }}",
+            "Deudor2 Cedula": "={{ $('Validar Datos Recibidos').first().json.datos.deudor2.cedula }}",
+            "Carpeta Drive": "={{ $('Crear Carpeta en Drive').first().json.webViewLink }}",
+            "Estado": "recibido",
+            "Documentos Subidos": "={{ $node['Subir Archivos a Drive'].outputItems.length }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "registrar-sheets",
+      "name": "Registrar en Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [1560, 200],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "google-sheets-oauth",
+          "name": "Google Sheets OAuth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ success: true, mensaje: 'Documentos recibidos correctamente', solicitud_id: $('Validar Datos Recibidos').first().json.datos.solicitud_id, carpeta_drive: $('Crear Carpeta en Drive').first().json.webViewLink, documentos_subidos: $node['Subir Archivos a Drive'].outputItems.length, siguiente_paso: 'Los documentos serán analizados y recibirás una respuesta en las próximas horas' }) }}"
+      },
+      "id": "respuesta-exito",
+      "name": "Respuesta Éxito",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1780, 200]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "tiene-contenido-base64",
+              "leftValue": "={{ $json.contenido }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "isNotEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "filtrar-docs-validos",
+      "name": "Filtrar Docs con Contenido",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2,
+      "position": [1230, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Convertir base64/URL a binario para subir a Drive\nconst doc = $input.first().json;\n\n// Si es base64, convertir a binario\nif (doc.contenido && doc.contenido.startsWith('data:')) {\n  // Extraer el base64 puro (sin el prefijo data:...;base64,)\n  const base64Data = doc.contenido.split(',')[1];\n  const mimeMatch = doc.contenido.match(/data:([^;]+);/);\n  const mimeType = mimeMatch ? mimeMatch[1] : 'application/pdf';\n  \n  return {\n    json: doc,\n    binary: {\n      data: {\n        data: base64Data,\n        mimeType: mimeType,\n        fileName: `${doc.nombre}.${mimeType.split('/')[1] || 'pdf'}`\n      }\n    }\n  };\n} else if (doc.contenido) {\n  // Si es texto plano base64\n  return {\n    json: doc,\n    binary: {\n      data: {\n        data: doc.contenido,\n        mimeType: 'application/pdf',\n        fileName: `${doc.nombre}.pdf`\n      }\n    }\n  };\n}\n\nreturn { json: doc };"
+      },
+      "id": "convertir-a-binario",
+      "name": "Convertir a Binario",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1340, 100]
+    }
+  ],
+  "connections": {
+    "Webhook - Recepción Formulario": {
+      "main": [
+        [
+          {
+            "node": "Validar Datos Recibidos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar Datos Recibidos": {
+      "main": [
+        [
+          {
+            "node": "¿Datos Válidos?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Datos Válidos?": {
+      "main": [
+        [
+          {
+            "node": "Crear Carpeta en Drive",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respuesta Error Validación",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Crear Carpeta en Drive": {
+      "main": [
+        [
+          {
+            "node": "Preparar Documentos para Drive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Documentos para Drive": {
+      "main": [
+        [
+          {
+            "node": "Filtrar Docs con Contenido",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filtrar Docs con Contenido": {
+      "main": [
+        [
+          {
+            "node": "Convertir a Binario",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convertir a Binario": {
+      "main": [
+        [
+          {
+            "node": "Subir Archivos a Drive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Subir Archivos a Drive": {
+      "main": [
+        [
+          {
+            "node": "Registrar en Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Registrar en Google Sheets": {
+      "main": [
+        [
+          {
+            "node": "Respuesta Éxito",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "name": "InmoBroker"
+    },
+    {
+      "name": "Recepción"
+    }
+  ],
+  "pinData": {},
+  "versionId": "1"
+}
