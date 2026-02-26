@@ -7,7 +7,7 @@
 const SUPABASE_URL = 'https://oqipslfzbeioakfllohm.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_jZUUlb22emiChmOQnlwujw_3NRk0oLS';
 
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // Variable global: el usuario autenticado (accesible desde app.js)
 let currentUser = null;
@@ -16,7 +16,7 @@ let appInitialized = false;
 // ===== Inicializar auth =====
 async function initAuth() {
     // Verificar si ya hay sesión activa (cookie de sesión)
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data: { session } } = await supabaseClient.auth.getSession();
     if (session) {
         currentUser = session.user;
         showApp();
@@ -25,7 +25,7 @@ async function initAuth() {
     }
 
     // Escuchar cambios de sesión (login, logout, token refresh)
-    supabase.auth.onAuthStateChange((event, session) => {
+    supabaseClient.auth.onAuthStateChange((event, session) => {
         currentUser = session?.user ?? null;
         if (session) {
             showApp();
@@ -75,22 +75,29 @@ async function handleLogin(e) {
     const btn = document.getElementById('loginBtn');
 
     btn.disabled = true;
-    btn.textContent = 'Iniciando sesión...';
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Iniciando sesión...';
     errorEl.style.display = 'none';
 
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-
-    if (error) {
-        const msg = error.message === 'Invalid login credentials'
-            ? 'Email o contraseña incorrectos'
-            : error.message;
-        errorEl.textContent = msg;
+    try {
+        const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+        if (error) {
+            const msg = error.message === 'Invalid login credentials'
+                ? 'Email o contraseña incorrectos'
+                : error.message;
+            errorEl.textContent = msg;
+            errorEl.style.color = '#dc2626';
+            errorEl.style.display = 'block';
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Iniciar sesión';
+        }
+        // Si no hay error, onAuthStateChange llama a showApp() automáticamente
+    } catch (err) {
+        errorEl.textContent = 'Error inesperado: ' + err.message;
         errorEl.style.color = '#dc2626';
         errorEl.style.display = 'block';
         btn.disabled = false;
-        btn.textContent = 'Iniciar sesión';
+        btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Iniciar sesión';
     }
-    // Si no hay error, onAuthStateChange llama a showApp() automáticamente
 }
 
 // ===== Registro =====
@@ -103,36 +110,50 @@ async function handleRegister(e) {
     const btn = document.getElementById('registerBtn');
 
     btn.disabled = true;
-    btn.textContent = 'Creando cuenta...';
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creando cuenta...';
     errorEl.style.display = 'none';
 
-    const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-            data: { nombre }
-        }
-    });
+    try {
+        const { data, error } = await supabaseClient.auth.signUp({
+            email,
+            password,
+            options: {
+                data: { nombre },
+                emailRedirectTo: 'https://inmolawyer.surge.sh'
+            }
+        });
 
-    if (error) {
-        errorEl.textContent = error.message;
+        if (error) {
+            const msg = error.message.includes('rate limit')
+                ? 'Demasiados intentos. Esperá unos minutos e intentá de nuevo.'
+                : error.message.includes('already registered') || error.message.includes('User already registered')
+                ? 'Este email ya tiene una cuenta. Usá "Iniciar sesión".'
+                : error.message;
+            errorEl.textContent = msg;
+            errorEl.style.color = '#dc2626';
+            errorEl.style.display = 'block';
+        } else if (data?.session) {
+            // autoconfirm activado — ya está logueado, onAuthStateChange hará el showApp()
+            return;
+        } else {
+            // Requiere confirmación por email
+            errorEl.innerHTML = '✅ ¡Cuenta creada! <strong>Revisá tu email</strong> y hacé clic en el enlace de confirmación para activar tu cuenta.';
+            errorEl.style.color = '#16a34a';
+            errorEl.style.display = 'block';
+        }
+    } catch (err) {
+        errorEl.textContent = 'Error inesperado: ' + err.message;
         errorEl.style.color = '#dc2626';
         errorEl.style.display = 'block';
-        btn.disabled = false;
-        btn.textContent = 'Crear cuenta';
-    } else {
-        // Éxito - puede que el email de confirmación esté desactivado
-        errorEl.textContent = '¡Cuenta creada! Si recibiste un email de confirmación, revísalo.';
-        errorEl.style.color = '#16a34a';
-        errorEl.style.display = 'block';
-        btn.disabled = false;
-        btn.textContent = 'Crear cuenta';
     }
+
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-user-plus"></i> Crear cuenta';
 }
 
 // ===== Logout =====
 async function handleLogout() {
-    await supabase.auth.signOut();
+    await supabaseClient.auth.signOut();
 }
 
 // ===== Cambiar tab login/registro =====
