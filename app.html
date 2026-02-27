@@ -91,73 +91,160 @@
         <!-- ===== PANEL ADMINISTRADOR ===== -->
         <section id="adminPanel" class="admin-panel" style="display:none">
             <div class="admin-header">
-                <h2><i class="fas fa-shield-alt"></i> Panel de Administración</h2>
+                <div class="admin-header-left">
+                    <h2><i class="fas fa-shield-alt"></i> Panel de Administración</h2>
+                    <div class="admin-tabs">
+                        <button class="admin-tab-btn active" data-tab="stats" onclick="switchAdminTab('stats')">
+                            <i class="fas fa-chart-bar"></i> Estadísticas
+                        </button>
+                        <button class="admin-tab-btn" data-tab="clientes" onclick="switchAdminTab('clientes')">
+                            <i class="fas fa-users"></i> Clientes
+                        </button>
+                    </div>
+                </div>
                 <button onclick="loadAdminData()" class="btn-refresh">
                     <i class="fas fa-sync-alt"></i> Actualizar
                 </button>
             </div>
 
-            <!-- Stat Cards -->
-            <div class="admin-stats-grid">
-                <div class="admin-stat-card">
-                    <i class="fas fa-file-contract"></i>
-                    <span id="statTotalContratos">—</span>
-                    <label>Contratos analizados</label>
-                </div>
-                <div class="admin-stat-card">
-                    <i class="fas fa-calendar-day"></i>
-                    <span id="statContratosMes">—</span>
-                    <label>Este mes</label>
-                </div>
-                <div class="admin-stat-card">
-                    <i class="fas fa-comments"></i>
-                    <span id="statConsultas">—</span>
-                    <label>Consultas de chat</label>
-                </div>
-                <div class="admin-stat-card">
-                    <i class="fas fa-users"></i>
-                    <span id="statUsuarios">—</span>
-                    <label>Usuarios únicos</label>
-                </div>
-            </div>
+            <!-- ===== TAB: ESTADÍSTICAS ===== -->
+            <div id="adminTabStats" class="admin-tab-content">
 
-            <!-- Risk Distribution + Top Cities -->
-            <div class="admin-two-col">
+                <!-- Stat Cards -->
+                <div class="admin-stats-grid">
+                    <div class="admin-stat-card">
+                        <i class="fas fa-file-contract"></i>
+                        <span id="statTotalContratos">—</span>
+                        <label>Contratos analizados</label>
+                    </div>
+                    <div class="admin-stat-card">
+                        <i class="fas fa-calendar-day"></i>
+                        <span id="statContratosMes">—</span>
+                        <label>Este mes</label>
+                    </div>
+                    <div class="admin-stat-card">
+                        <i class="fas fa-comments"></i>
+                        <span id="statConsultas">—</span>
+                        <label>Consultas de chat</label>
+                    </div>
+                    <div class="admin-stat-card">
+                        <i class="fas fa-users"></i>
+                        <span id="statUsuarios">—</span>
+                        <label>Usuarios únicos</label>
+                    </div>
+                </div>
+
+                <!-- Risk Distribution + Top Cities -->
+                <div class="admin-two-col">
+                    <div class="admin-card">
+                        <h3><i class="fas fa-exclamation-triangle"></i> Distribución de Riesgo</h3>
+                        <div id="riskDistribution">
+                            <div class="admin-loading">Cargando...</div>
+                        </div>
+                    </div>
+                    <div class="admin-card">
+                        <h3><i class="fas fa-map-marker-alt"></i> Top Ciudades</h3>
+                        <div id="topCiudades">
+                            <div class="admin-loading">Cargando...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Contracts Table -->
                 <div class="admin-card">
-                    <h3><i class="fas fa-exclamation-triangle"></i> Distribución de Riesgo</h3>
-                    <div id="riskDistribution">
+                    <h3><i class="fas fa-clock"></i> Contratos Recientes</h3>
+                    <div class="admin-table-wrapper">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Usuario</th>
+                                    <th>Ciudad</th>
+                                    <th>Score</th>
+                                    <th>Duración</th>
+                                </tr>
+                            </thead>
+                            <tbody id="adminContractosBody">
+                                <tr><td colspan="5" style="text-align:center;color:#64748b">Cargando...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div><!-- /adminTabStats -->
+
+            <!-- ===== TAB: CLIENTES ===== -->
+            <div id="adminTabClientes" class="admin-tab-content" style="display:none">
+
+                <!-- Barra de filtros -->
+                <div class="admin-filter-bar">
+                    <div class="filter-search">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="userSearch" placeholder="Buscar por email o nombre..." oninput="filterUsers()">
+                    </div>
+                    <select id="activityFilter" onchange="filterUsers()">
+                        <option value="">Todos los niveles</option>
+                        <option value="power">⚡ Power User</option>
+                        <option value="activo">✅ Activo</option>
+                        <option value="inactivo">💤 Inactivo</option>
+                    </select>
+                    <select id="newFilter" onchange="filterUsers()">
+                        <option value="">Todos</option>
+                        <option value="new">🆕 Nuevos (7 días)</option>
+                    </select>
+                    <button class="btn-export-csv" onclick="exportUsersCSV()">
+                        <i class="fas fa-download"></i> CSV
+                    </button>
+                </div>
+
+                <!-- Tabla de usuarios -->
+                <div class="admin-card">
+                    <h3><i class="fas fa-user-circle"></i> Registro de Clientes <span id="usersCount" class="users-count-badge"></span></h3>
+                    <div class="admin-table-wrapper">
+                        <table class="admin-table users-table">
+                            <thead>
+                                <tr>
+                                    <th>Nombre</th>
+                                    <th>Email</th>
+                                    <th>Nivel</th>
+                                    <th>Registro</th>
+                                    <th>Última actividad</th>
+                                    <th>Contratos</th>
+                                    <th>Consultas</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody id="usersTableBody">
+                                <tr><td colspan="8" style="text-align:center;color:#64748b;padding:20px">Cargando clientes...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Top preguntas frecuentes -->
+                <div class="admin-card">
+                    <h3><i class="fas fa-question-circle"></i> Preguntas más Frecuentes</h3>
+                    <div id="topPreguntasContainer">
                         <div class="admin-loading">Cargando...</div>
                     </div>
                 </div>
-                <div class="admin-card">
-                    <h3><i class="fas fa-map-marker-alt"></i> Top Ciudades</h3>
-                    <div id="topCiudades">
-                        <div class="admin-loading">Cargando...</div>
-                    </div>
-                </div>
-            </div>
 
-            <!-- Recent Contracts Table -->
-            <div class="admin-card">
-                <h3><i class="fas fa-clock"></i> Contratos Recientes</h3>
-                <div class="admin-table-wrapper">
-                    <table class="admin-table">
-                        <thead>
-                            <tr>
-                                <th>Fecha</th>
-                                <th>Usuario</th>
-                                <th>Ciudad</th>
-                                <th>Score</th>
-                                <th>Duración</th>
-                            </tr>
-                        </thead>
-                        <tbody id="adminContractosBody">
-                            <tr><td colspan="5" style="text-align:center;color:#64748b">Cargando...</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+            </div><!-- /adminTabClientes -->
+
         </section>
+
+        <!-- Modal: Preguntas de un usuario -->
+        <div id="userQuestionsModal" class="uq-modal-overlay" style="display:none" onclick="closeUserQuestionsModal(event)">
+            <div class="uq-modal-box">
+                <div class="uq-modal-header">
+                    <h3><i class="fas fa-comments"></i> Consultas de <span id="uqModalUserName"></span></h3>
+                    <button class="uq-modal-close" onclick="closeUserQuestionsModal()"><i class="fas fa-times"></i></button>
+                </div>
+                <div id="uqModalContent" class="uq-modal-content">
+                    <div class="admin-loading">Cargando consultas...</div>
+                </div>
+            </div>
+        </div>
 
         <!-- Main Content -->
         <main class="main-content">
@@ -446,7 +533,7 @@
     <div class="toast-container" id="toastContainer"></div>
 
     <script src="https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js"></script>
-    <script src="auth.js?v=2"></script>
-    <script src="app.js?v=2"></script>
+    <script src="auth.js?v=3"></script>
+    <script src="app.js?v=3"></script>
 </body>
 </html>

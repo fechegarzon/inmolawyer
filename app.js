@@ -1152,6 +1152,8 @@ function generatePDF() {
 // ===== PANEL ADMINISTRADOR =====
 
 let adminPanelVisible = false;
+let activeAdminTab = 'stats';
+let usersDataCache = []; // cache para filtrado client-side y export CSV
 
 function toggleAdminPanel() {
     if (!isAdmin()) return;
@@ -1160,6 +1162,19 @@ function toggleAdminPanel() {
     if (panel) {
         panel.style.display = adminPanelVisible ? 'block' : 'none';
         if (adminPanelVisible) loadAdminData();
+    }
+}
+
+function switchAdminTab(tab) {
+    activeAdminTab = tab;
+    document.querySelectorAll('.admin-tab-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.tab === tab);
+    });
+    document.getElementById('adminTabStats').style.display = tab === 'stats' ? 'block' : 'none';
+    document.getElementById('adminTabClientes').style.display = tab === 'clientes' ? 'block' : 'none';
+    if (tab === 'clientes' && usersDataCache.length === 0) {
+        loadUsersRegistry();
+        loadTopPreguntas();
     }
 }
 
@@ -1251,8 +1266,277 @@ async function loadAdminData() {
                 '<tr><td colspan="5" style="text-align:center;color:#64748b;padding:20px">Sin contratos aún</td></tr>';
         }
 
+        // Si el tab de clientes está activo, recargar también
+        if (activeAdminTab === 'clientes') {
+            usersDataCache = [];
+            loadUsersRegistry();
+            loadTopPreguntas();
+        }
+
     } catch (err) {
         console.error('Admin panel error:', err);
         showToast('Error cargando datos del panel admin: ' + err.message, 'error');
     }
+}
+
+// ===== CLIENTES: Registro de usuarios =====
+
+async function loadUsersRegistry() {
+    if (!isAdmin()) return;
+    const tbody = document.getElementById('usersTableBody');
+    if (tbody) tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#64748b;padding:20px"><i class="fas fa-spinner fa-spin"></i> Cargando clientes...</td></tr>';
+
+    try {
+        // 1. Todos los perfiles
+        const { data: profiles } = await supabaseClient
+            .from('user_profiles')
+            .select('id, email, nombre, fecha_registro')
+            .order('fecha_registro', { ascending: false });
+
+        // 2. Contratos por usuario
+        const { data: contratos } = await supabaseClient
+            .from('contratos')
+            .select('user_id, created_at');
+
+        // 3. Consultas por usuario
+        const { data: chats } = await supabaseClient
+            .from('consultas_chat')
+            .select('user_id, created_at');
+
+        const now = new Date();
+        const hace30 = new Date(now - 30 * 24 * 60 * 60 * 1000);
+        const hace7  = new Date(now -  7 * 24 * 60 * 60 * 1000);
+        const primerDelMes = new Date(now.getFullYear(), now.getMonth(), 1);
+
+        // Agrupar contratos por user_id
+        const contratosByUser = {};
+        (contratos || []).forEach(c => {
+            if (!c.user_id) return;
+            if (!contratosByUser[c.user_id]) contratosByUser[c.user_id] = { total: 0, esteMes: 0, lastAt: null };
+            contratosByUser[c.user_id].total++;
+            const d = new Date(c.created_at);
+            if (d >= primerDelMes) contratosByUser[c.user_id].esteMes++;
+            if (!contratosByUser[c.user_id].lastAt || d > contratosByUser[c.user_id].lastAt)
+                contratosByUser[c.user_id].lastAt = d;
+        });
+
+        // Agrupar chats por user_id
+        const chatsByUser = {};
+        (chats || []).forEach(c => {
+            if (!c.user_id) return;
+            if (!chatsByUser[c.user_id]) chatsByUser[c.user_id] = { total: 0, lastAt: null };
+            chatsByUser[c.user_id].total++;
+            const d = new Date(c.created_at);
+            if (!chatsByUser[c.user_id].lastAt || d > chatsByUser[c.user_id].lastAt)
+                chatsByUser[c.user_id].lastAt = d;
+        });
+
+        // Construir array enriquecido
+        usersDataCache = (profiles || []).map(u => {
+            const cts = contratosByUser[u.id] || { total: 0, esteMes: 0, lastAt: null };
+            const chs = chatsByUser[u.id]     || { total: 0, lastAt: null };
+
+            const lastAct = [cts.lastAt, chs.lastAt].filter(Boolean).sort((a,b) => b-a)[0] || null;
+
+            let tipo;
+            if (cts.esteMes >= 3) {
+                tipo = 'power';
+            } else if (lastAct && lastAct >= hace30) {
+                tipo = 'activo';
+            } else {
+                tipo = 'inactivo';
+            }
+
+            return {
+                id: u.id,
+                email: u.email,
+                nombre: u.nombre || '',
+                fecha_registro: u.fecha_registro,
+                es_nuevo: new Date(u.fecha_registro) >= hace7,
+                ultima_actividad: lastAct,
+                contratos: cts.total,
+                consultas: chs.total,
+                tipo
+            };
+        });
+
+        renderUsersTable(usersDataCache);
+
+    } catch (err) {
+        console.error('Error cargando clientes:', err);
+        const tbody = document.getElementById('usersTableBody');
+        if (tbody) tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:#dc2626;padding:20px">Error: ${err.message}</td></tr>`;
+    }
+}
+
+function renderUsersTable(users) {
+    const tbody = document.getElementById('usersTableBody');
+    const countBadge = document.getElementById('usersCount');
+    if (!tbody) return;
+
+    if (countBadge) countBadge.textContent = users.length;
+
+    if (users.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#64748b;padding:20px">No hay clientes registrados</td></tr>';
+        return;
+    }
+
+    const tipoBadge = {
+        power:   '<span class="badge-activity badge-power"><i class="fas fa-bolt"></i> Power User</span>',
+        activo:  '<span class="badge-activity badge-activo"><i class="fas fa-circle"></i> Activo</span>',
+        inactivo:'<span class="badge-activity badge-inactivo"><i class="fas fa-moon"></i> Inactivo</span>'
+    };
+
+    tbody.innerHTML = users.map(u => {
+        const nuevoTag = u.es_nuevo ? '<span class="badge-nuevo">NUEVO</span>' : '';
+        const lastActStr = u.ultima_actividad
+            ? new Date(u.ultima_actividad).toLocaleDateString('es-CO')
+            : '—';
+        const regStr = new Date(u.fecha_registro).toLocaleDateString('es-CO');
+        const nombre = u.nombre || '<span style="color:#64748b;font-style:italic">Sin nombre</span>';
+        const verBtn = u.consultas > 0
+            ? `<button class="btn-ver-preguntas" onclick="showUserQuestions('${u.id}','${(u.nombre || u.email).replace(/'/g,"\\'")}')"><i class="fas fa-eye"></i></button>`
+            : '';
+        return `<tr>
+            <td>${nombre}</td>
+            <td class="email-cell">${u.email}</td>
+            <td>${tipoBadge[u.tipo] || ''}</td>
+            <td>${regStr} ${nuevoTag}</td>
+            <td>${lastActStr}</td>
+            <td class="num-cell">${u.contratos}</td>
+            <td class="num-cell">${u.consultas}</td>
+            <td>${verBtn}</td>
+        </tr>`;
+    }).join('');
+}
+
+function filterUsers() {
+    const search = (document.getElementById('userSearch')?.value || '').toLowerCase();
+    const activity = document.getElementById('activityFilter')?.value || '';
+    const onlyNew = document.getElementById('newFilter')?.value === 'new';
+
+    const filtered = usersDataCache.filter(u => {
+        if (search && !u.email.toLowerCase().includes(search) && !u.nombre.toLowerCase().includes(search)) return false;
+        if (activity && u.tipo !== activity) return false;
+        if (onlyNew && !u.es_nuevo) return false;
+        return true;
+    });
+
+    renderUsersTable(filtered);
+}
+
+function exportUsersCSV() {
+    if (!usersDataCache.length) return;
+    const headers = ['Nombre','Email','Nivel','Nuevo','Fecha Registro','Ultima Actividad','Contratos','Consultas'];
+    const rows = usersDataCache.map(u => [
+        u.nombre || '',
+        u.email,
+        u.tipo,
+        u.es_nuevo ? 'Si' : 'No',
+        new Date(u.fecha_registro).toLocaleDateString('es-CO'),
+        u.ultima_actividad ? new Date(u.ultima_actividad).toLocaleDateString('es-CO') : '',
+        u.contratos,
+        u.consultas
+    ]);
+    const csv = [headers, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `clientes-inmolawyer-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+}
+
+// ===== TOP PREGUNTAS FRECUENTES =====
+
+async function loadTopPreguntas() {
+    if (!isAdmin()) return;
+    const container = document.getElementById('topPreguntasContainer');
+    if (!container) return;
+
+    try {
+        const { data } = await supabaseClient
+            .from('consultas_chat')
+            .select('pregunta')
+            .limit(500);
+
+        if (!data || data.length === 0) {
+            container.innerHTML = '<p class="admin-empty">Sin consultas aún</p>';
+            return;
+        }
+
+        // Normalizar y contar
+        const freq = {};
+        data.forEach(r => {
+            if (!r.pregunta) return;
+            const key = r.pregunta.trim().toLowerCase().slice(0, 120);
+            freq[key] = (freq[key] || 0) + 1;
+        });
+
+        const top10 = Object.entries(freq)
+            .sort((a,b) => b[1] - a[1])
+            .slice(0, 10);
+
+        const maxCount = top10[0]?.[1] || 1;
+
+        container.innerHTML = top10.map(([pregunta, count], i) => {
+            const pct = Math.round((count / maxCount) * 100);
+            return `<div class="top-pregunta-row">
+                <span class="pregunta-rank">${i+1}</span>
+                <div class="pregunta-info">
+                    <p class="pregunta-text">${pregunta.charAt(0).toUpperCase() + pregunta.slice(1)}</p>
+                    <div class="pregunta-bar-wrap">
+                        <div class="pregunta-bar" style="width:${pct}%"></div>
+                    </div>
+                </div>
+                <span class="pregunta-count">${count}x</span>
+            </div>`;
+        }).join('');
+
+    } catch (err) {
+        console.error('Error cargando preguntas:', err);
+        container.innerHTML = '<p class="admin-empty">Error cargando preguntas</p>';
+    }
+}
+
+// ===== MODAL: PREGUNTAS DE UN USUARIO =====
+
+async function showUserQuestions(userId, userName) {
+    const modal = document.getElementById('userQuestionsModal');
+    const content = document.getElementById('uqModalContent');
+    const title = document.getElementById('uqModalUserName');
+    if (!modal || !content) return;
+
+    if (title) title.textContent = userName;
+    content.innerHTML = '<div class="admin-loading"><i class="fas fa-spinner fa-spin"></i> Cargando...</div>';
+    modal.style.display = 'flex';
+
+    try {
+        const { data } = await supabaseClient
+            .from('consultas_chat')
+            .select('pregunta, respuesta, created_at')
+            .eq('user_id', userId)
+            .order('created_at', { ascending: false })
+            .limit(50);
+
+        if (!data || data.length === 0) {
+            content.innerHTML = '<p class="admin-empty">Este usuario no tiene consultas registradas.</p>';
+            return;
+        }
+
+        content.innerHTML = data.map(q => `
+            <div class="uq-item">
+                <div class="uq-meta">${new Date(q.created_at).toLocaleString('es-CO')}</div>
+                <div class="uq-question"><i class="fas fa-question-circle"></i> ${q.pregunta || '—'}</div>
+                ${q.respuesta ? `<div class="uq-answer"><i class="fas fa-balance-scale"></i> ${q.respuesta.slice(0, 300)}${q.respuesta.length > 300 ? '…' : ''}</div>` : ''}
+            </div>
+        `).join('');
+
+    } catch (err) {
+        content.innerHTML = `<p style="color:#dc2626">Error: ${err.message}</p>`;
+    }
+}
+
+function closeUserQuestionsModal(event) {
+    if (event && event.target !== document.getElementById('userQuestionsModal')) return;
+    document.getElementById('userQuestionsModal').style.display = 'none';
 }

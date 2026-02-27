@@ -142,10 +142,21 @@ async function handleRegister(e) {
             errorEl.textContent = msg;
             errorEl.style.color = '#dc2626';
             errorEl.style.display = 'block';
-        } else if (data?.session) {
-            // autoconfirm activado — ya está logueado, onAuthStateChange hará el showApp()
-            return;
         } else {
+            // Guardar perfil en user_profiles (tanto autoconfirm como email-confirm)
+            if (data?.user) {
+                await supabaseClient.from('user_profiles').upsert({
+                    id: data.user.id,
+                    email: email,
+                    nombre: nombre,
+                    fecha_registro: new Date().toISOString()
+                });
+            }
+            if (data?.session) {
+                // autoconfirm activado — ya está logueado, onAuthStateChange hará el showApp()
+                return;
+            }
+            // else: Requiere confirmación por email (continúa abajo)
             // Requiere confirmación por email
             errorEl.innerHTML = '✅ ¡Cuenta creada! <strong>Revisá tu email</strong> y hacé clic en el enlace de confirmación para activar tu cuenta.';
             errorEl.style.color = '#16a34a';
