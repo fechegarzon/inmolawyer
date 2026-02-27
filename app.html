@@ -79,11 +79,85 @@
             <p class="tagline">Analisis de Contratos de Arrendamiento - Ley 820 de 2003</p>
             <div class="user-bar">
                 <span class="user-email-badge" id="userEmailDisplay"></span>
+                <button id="adminBtn" class="btn-admin" style="display:none" onclick="toggleAdminPanel()">
+                    <i class="fas fa-shield-alt"></i> Admin
+                </button>
                 <button id="logoutBtn" class="btn-logout">
                     <i class="fas fa-sign-out-alt"></i> Salir
                 </button>
             </div>
         </header>
+
+        <!-- ===== PANEL ADMINISTRADOR ===== -->
+        <section id="adminPanel" class="admin-panel" style="display:none">
+            <div class="admin-header">
+                <h2><i class="fas fa-shield-alt"></i> Panel de Administración</h2>
+                <button onclick="loadAdminData()" class="btn-refresh">
+                    <i class="fas fa-sync-alt"></i> Actualizar
+                </button>
+            </div>
+
+            <!-- Stat Cards -->
+            <div class="admin-stats-grid">
+                <div class="admin-stat-card">
+                    <i class="fas fa-file-contract"></i>
+                    <span id="statTotalContratos">—</span>
+                    <label>Contratos analizados</label>
+                </div>
+                <div class="admin-stat-card">
+                    <i class="fas fa-calendar-day"></i>
+                    <span id="statContratosMes">—</span>
+                    <label>Este mes</label>
+                </div>
+                <div class="admin-stat-card">
+                    <i class="fas fa-comments"></i>
+                    <span id="statConsultas">—</span>
+                    <label>Consultas de chat</label>
+                </div>
+                <div class="admin-stat-card">
+                    <i class="fas fa-users"></i>
+                    <span id="statUsuarios">—</span>
+                    <label>Usuarios únicos</label>
+                </div>
+            </div>
+
+            <!-- Risk Distribution + Top Cities -->
+            <div class="admin-two-col">
+                <div class="admin-card">
+                    <h3><i class="fas fa-exclamation-triangle"></i> Distribución de Riesgo</h3>
+                    <div id="riskDistribution">
+                        <div class="admin-loading">Cargando...</div>
+                    </div>
+                </div>
+                <div class="admin-card">
+                    <h3><i class="fas fa-map-marker-alt"></i> Top Ciudades</h3>
+                    <div id="topCiudades">
+                        <div class="admin-loading">Cargando...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Contracts Table -->
+            <div class="admin-card">
+                <h3><i class="fas fa-clock"></i> Contratos Recientes</h3>
+                <div class="admin-table-wrapper">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Usuario</th>
+                                <th>Ciudad</th>
+                                <th>Score</th>
+                                <th>Duración</th>
+                            </tr>
+                        </thead>
+                        <tbody id="adminContractosBody">
+                            <tr><td colspan="5" style="text-align:center;color:#64748b">Cargando...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
 
         <!-- Main Content -->
         <main class="main-content">

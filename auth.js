@@ -9,6 +9,12 @@ const SUPABASE_ANON_KEY = 'sb_publishable_jZUUlb22emiChmOQnlwujw_3NRk0oLS';
 
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+// Admin config
+const ADMIN_EMAILS = ['f@feche.xyz'];
+function isAdmin() {
+    return !!(currentUser && ADMIN_EMAILS.includes(currentUser.email.toLowerCase()));
+}
+
 // Variable global: el usuario autenticado (accesible desde app.js)
 let currentUser = null;
 let appInitialized = false;
@@ -56,6 +62,10 @@ function showApp() {
     if (emailEl && currentUser) {
         emailEl.textContent = currentUser.email;
     }
+
+    // Mostrar botón admin solo al administrador
+    const adminBtn = document.getElementById('adminBtn');
+    if (adminBtn) adminBtn.style.display = isAdmin() ? 'inline-flex' : 'none';
 
     // Inicializar la app solo una vez
     if (!appInitialized) {

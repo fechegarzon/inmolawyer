@@ -1148,3 +1148,111 @@ function generatePDF() {
 
     showToast('PDF descargado correctamente', 'success');
 }
+
+// ===== PANEL ADMINISTRADOR =====
+
+let adminPanelVisible = false;
+
+function toggleAdminPanel() {
+    if (!isAdmin()) return;
+    adminPanelVisible = !adminPanelVisible;
+    const panel = document.getElementById('adminPanel');
+    if (panel) {
+        panel.style.display = adminPanelVisible ? 'block' : 'none';
+        if (adminPanelVisible) loadAdminData();
+    }
+}
+
+async function loadAdminData() {
+    if (!isAdmin()) return;
+
+    try {
+        // 1. Total contratos
+        const { count: totalContratos } = await supabaseClient
+            .from('contratos')
+            .select('*', { count: 'exact', head: true });
+        document.getElementById('statTotalContratos').textContent = totalContratos ?? '—';
+
+        // 2. Contratos este mes
+        const firstOfMonth = new Date();
+        firstOfMonth.setDate(1);
+        firstOfMonth.setHours(0, 0, 0, 0);
+        const { count: contratosMes } = await supabaseClient
+            .from('contratos')
+            .select('*', { count: 'exact', head: true })
+            .gte('created_at', firstOfMonth.toISOString());
+        document.getElementById('statContratosMes').textContent = contratosMes ?? '—';
+
+        // 3. Total consultas chat
+        const { count: totalConsultas } = await supabaseClient
+            .from('consultas_chat')
+            .select('*', { count: 'exact', head: true });
+        document.getElementById('statConsultas').textContent = totalConsultas ?? '—';
+
+        // 4. Usuarios únicos por user_email
+        const { data: emailRows } = await supabaseClient
+            .from('contratos')
+            .select('user_email');
+        const uniqueUsers = new Set((emailRows || []).map(r => r.user_email).filter(Boolean)).size;
+        document.getElementById('statUsuarios').textContent = uniqueUsers || (emailRows?.length ? '1+' : '—');
+
+        // 5. Distribución de riesgo
+        const { data: scoreRows } = await supabaseClient
+            .from('contratos')
+            .select('score_riesgo');
+        if (scoreRows && scoreRows.length > 0) {
+            const high = scoreRows.filter(c => (c.score_riesgo || 0) >= 51).length;
+            const med  = scoreRows.filter(c => (c.score_riesgo || 0) >= 26 && (c.score_riesgo || 0) < 51).length;
+            const low  = scoreRows.filter(c => (c.score_riesgo || 0) < 26).length;
+            document.getElementById('riskDistribution').innerHTML = `
+                <div class="risk-bar"><span class="risk-label danger">🔴 Alto (&ge;51)</span><strong class="risk-count">${high}</strong></div>
+                <div class="risk-bar"><span class="risk-label warning">🟡 Medio (26-50)</span><strong class="risk-count">${med}</strong></div>
+                <div class="risk-bar"><span class="risk-label success">🟢 Bajo (&lt;26)</span><strong class="risk-count">${low}</strong></div>
+            `;
+        } else {
+            document.getElementById('riskDistribution').innerHTML = '<p class="admin-empty">Sin datos aún</p>';
+        }
+
+        // 6. Top ciudades
+        const { data: ciudadRows } = await supabaseClient
+            .from('contratos')
+            .select('ciudad');
+        if (ciudadRows && ciudadRows.length > 0) {
+            const freq = {};
+            ciudadRows.forEach(r => { if (r.ciudad) freq[r.ciudad] = (freq[r.ciudad] || 0) + 1; });
+            const sorted = Object.entries(freq).sort((a, b) => b[1] - a[1]).slice(0, 5);
+            document.getElementById('topCiudades').innerHTML = sorted
+                .map(([city, n]) => `<div class="ciudad-row"><span>${city}</span><strong>${n}</strong></div>`)
+                .join('') || '<p class="admin-empty">Sin datos aún</p>';
+        } else {
+            document.getElementById('topCiudades').innerHTML = '<p class="admin-empty">Sin datos aún</p>';
+        }
+
+        // 7. Tabla contratos recientes
+        const { data: recientes } = await supabaseClient
+            .from('contratos')
+            .select('created_at, ciudad, score_riesgo, user_email, duracion_meses')
+            .order('created_at', { ascending: false })
+            .limit(20);
+        if (recientes && recientes.length > 0) {
+            document.getElementById('adminContractosBody').innerHTML = recientes.map(c => {
+                const score = c.score_riesgo ?? null;
+                const scoreClass = score === null ? '' : score >= 51 ? 'high' : score >= 26 ? 'med' : 'low';
+                return `<tr>
+                    <td>${new Date(c.created_at).toLocaleDateString('es-CO')}</td>
+                    <td>${c.user_email || '—'}</td>
+                    <td>${c.ciudad || '—'}</td>
+                    <td>${score !== null ? `<span class="score-badge ${scoreClass}">${score}</span>` : '—'}</td>
+                    <td>${c.duracion_meses ? c.duracion_meses + ' meses' : '—'}</td>
+                </tr>`;
+            }).join('');
+        } else {
+            document.getElementById('adminContractosBody').innerHTML =
+                '<tr><td colspan="5" style="text-align:center;color:#64748b;padding:20px">Sin contratos aún</td></tr>';
+        }
+
+    } catch (err) {
+        console.error('Admin panel error:', err);
+        showToast('Error cargando datos del panel admin: ' + err.message, 'error');
+    }
+}
