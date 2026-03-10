@@ -3,12 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>InmoLawyer - Analisis de Contratos de Arrendamiento</title>
+    <title>InmoLawyer — Análisis de Contratos de Arrendamiento</title>
+    <meta name="description" content="Plataforma de análisis de contratos de arrendamiento con IA. Detecta cláusulas abusivas y verifica el cumplimiento de la Ley 820 de 2003.">
+    <meta name="robots" content="noindex, nofollow">
+    <link rel="canonical" href="https://inmolawyer.surge.sh/app.html">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚖️</text></svg>">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
     <link rel="stylesheet" href="styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
@@ -42,7 +48,43 @@
                 <button type="submit" id="loginBtn" class="btn-auth">
                     <i class="fas fa-sign-in-alt"></i> Iniciar sesión
                 </button>
+                <p style="text-align:center;margin-top:10px;font-size:0.85rem;">
+                    <a href="#" onclick="showForgotForm();return false;" style="color:var(--green-600,#16a34a);">¿Olvidaste tu contraseña?</a>
+                </p>
             </form>
+
+            <!-- Recuperar contraseña -->
+            <div id="forgotForm" class="auth-form" style="display:none;flex-direction:column;">
+                <a href="#" onclick="hideForgotForm();return false;" style="font-size:0.85rem;color:var(--green-600,#16a34a);display:inline-block;margin-bottom:14px;">← Volver al inicio de sesión</a>
+                <h3 style="margin:0 0 6px;font-size:1rem;font-weight:600;">Recuperar contraseña</h3>
+                <p style="font-size:0.875rem;color:#6b7280;margin-bottom:16px;">Te enviaremos un enlace para restablecer tu contraseña.</p>
+                <div class="form-group">
+                    <label for="forgotEmail">Email</label>
+                    <input type="email" id="forgotEmail" placeholder="tu@email.com" autocomplete="email">
+                </div>
+                <p class="auth-error" id="forgotMsg" style="display:none"></p>
+                <button type="button" id="forgotBtn" class="btn-auth" onclick="handleForgotPassword()">
+                    <i class="fas fa-envelope"></i> Enviar enlace
+                </button>
+            </div>
+
+            <!-- Nueva contraseña (recovery flow) -->
+            <div id="resetPasswordForm" class="auth-form" style="display:none;flex-direction:column;">
+                <h3 style="margin:0 0 6px;font-size:1rem;font-weight:600;"><i class="fas fa-key" style="margin-right:6px;color:var(--green-600,#16a34a);"></i>Nueva contraseña</h3>
+                <p style="font-size:0.875rem;color:#6b7280;margin-bottom:16px;">Ingresa tu nueva contraseña para continuar.</p>
+                <div class="form-group">
+                    <label for="newPassword">Nueva contraseña</label>
+                    <input type="password" id="newPassword" placeholder="Mínimo 6 caracteres" minlength="6" autocomplete="new-password">
+                </div>
+                <div class="form-group">
+                    <label for="confirmPassword">Confirmar contraseña</label>
+                    <input type="password" id="confirmPassword" placeholder="Repite tu contraseña" minlength="6" autocomplete="new-password">
+                </div>
+                <p class="auth-error" id="resetMsg" style="display:none"></p>
+                <button type="button" id="resetBtn" class="btn-auth" onclick="handleNewPassword()">
+                    <i class="fas fa-lock"></i> Cambiar contraseña
+                </button>
+            </div>
 
             <!-- Form Registro -->
             <form id="registerForm" class="auth-form" style="display:none">
@@ -58,6 +100,13 @@
                     <label for="registerPassword">Contraseña</label>
                     <input type="password" id="registerPassword" placeholder="Mínimo 6 caracteres" required minlength="6" autocomplete="new-password">
                 </div>
+                <!-- Checkbox Términos y Condiciones -->
+                <div class="tc-check-wrapper">
+                    <label class="tc-check-label">
+                        <input type="checkbox" id="registerTC" required>
+                        <span>Al crear mi cuenta acepto los <a href="#" class="tc-link" onclick="return false;">Términos y Condiciones</a> de InmoLawyer</span>
+                    </label>
+                </div>
                 <p class="auth-error" id="registerError" style="display:none"></p>
                 <button type="submit" id="registerBtn" class="btn-auth">
                     <i class="fas fa-user-plus"></i> Crear cuenta
@@ -68,17 +117,64 @@
         </div>
     </div>
 
+    <!-- ===== MODAL: TÉRMINOS Y CONDICIONES (usuarios existentes sin aceptar) ===== -->
+    <div id="tcModal" class="tc-modal-overlay" style="display:none">
+        <div class="tc-modal-box">
+            <div class="tc-modal-icon"><i class="fas fa-file-contract"></i></div>
+            <h2>Términos y Condiciones</h2>
+            <p class="tc-modal-intro">Para continuar usando InmoLawyer debes aceptar nuestros Términos y Condiciones de uso.</p>
+            <div class="tc-modal-scroll">
+                <p>InmoLawyer es una herramienta de análisis asistido por inteligencia artificial. Los análisis generados tienen carácter informativo y no constituyen asesoría jurídica formal. El uso del servicio implica la aceptación de estos términos.</p>
+                <p>Al usar InmoLawyer, el usuario acepta que los resultados son orientativos y que siempre debe consultar con un profesional del derecho ante situaciones jurídicas específicas.</p>
+                <p>InmoLawyer se reserva el derecho de modificar estos términos con previo aviso al usuario.</p>
+            </div>
+            <label class="tc-modal-check-label">
+                <input type="checkbox" id="tcModalCheck" onchange="document.getElementById('tcAcceptBtn').disabled = !this.checked">
+                <span>He leído y acepto los Términos y Condiciones de InmoLawyer</span>
+            </label>
+            <button id="tcAcceptBtn" class="btn-auth" onclick="acceptTerms()" disabled>
+                <i class="fas fa-check"></i> Acepto los Términos y Condiciones
+            </button>
+        </div>
+    </div>
+
+    <!-- ===== MODAL: PLANES Y PRECIOS (Wompi) ===== -->
+    <div id="pricingModal" class="pricing-modal-overlay" style="display:none" onclick="if(event.target===this)closePricingModal()">
+        <div class="pricing-modal-box">
+            <div class="pricing-modal-header">
+                <div>
+                    <h2><i class="fas fa-tag"></i> Elige tu plan</h2>
+                    <p>Créditos que nunca vencen. Úsalos cuando los necesites.</p>
+                </div>
+                <button class="pricing-modal-close" onclick="closePricingModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div id="pricingPlansContainer" class="pricing-plans-container">
+                <!-- Populated by renderPricingPlans() in app.js -->
+            </div>
+            <p class="pricing-footer-note">
+                <i class="fas fa-lock"></i> Pago seguro con <strong>Wompi</strong> · Tarjetas, PSE, Nequi y más ·
+                <a href="https://wa.me/573337124882?text=Hola%2C%20quiero%20info%20sobre%20los%20planes%20de%20InmoLawyer" target="_blank">¿Dudas? WhatsApp</a>
+            </p>
+        </div>
+    </div>
+
     <!-- ===== APP PRINCIPAL (visible solo cuando está autenticado) ===== -->
     <div id="appContainer" class="app-container" style="display:none">
         <!-- Header -->
         <header class="app-header">
-            <div class="logo">
+            <a href="/" class="logo" style="text-decoration:none;color:inherit;cursor:pointer;">
                 <i class="fas fa-balance-scale"></i>
                 <span>InmoLawyer</span>
-            </div>
+            </a>
             <p class="tagline">Analisis de Contratos de Arrendamiento - Ley 820 de 2003</p>
             <div class="user-bar">
                 <span class="user-email-badge" id="userEmailDisplay"></span>
+                <span id="estudiosCounter" class="estudios-counter" style="display:none"></span>
+                <button id="buyCreditsBtn" class="btn-buy-credits" onclick="showPricingModal()" style="display:none">
+                    <i class="fas fa-plus-circle"></i> Comprar estudios
+                </button>
                 <button id="adminBtn" class="btn-admin" style="display:none" onclick="toggleAdminPanel()">
                     <i class="fas fa-shield-alt"></i> Admin
                 </button>
@@ -87,6 +183,15 @@
                 </button>
             </div>
         </header>
+
+        <!-- ===== BANNER: VINCULAR WHATSAPP ===== -->
+        <div id="waLinkBanner" class="wa-link-banner" style="display:none">
+            <div class="wa-banner-content">
+                <i class="fab fa-whatsapp"></i>
+                <span>Analiza contratos desde <strong>WhatsApp</strong> — vincula tu cuenta ahora</span>
+            </div>
+            <button class="wa-banner-btn">Vincular <i class="fas fa-arrow-right"></i></button>
+        </div>
 
         <!-- ===== PANEL ADMINISTRADOR ===== -->
         <section id="adminPanel" class="admin-panel" style="display:none">
@@ -102,7 +207,7 @@
                         </button>
                     </div>
                 </div>
-                <button onclick="loadAdminData()" class="btn-refresh">
+                <button onclick="loadAdminData(true)" class="btn-refresh">
                     <i class="fas fa-sync-alt"></i> Actualizar
                 </button>
             </div>
@@ -211,6 +316,7 @@
                                     <th>Última actividad</th>
                                     <th>Contratos</th>
                                     <th>Consultas</th>
+                                    <th>Estudios</th>
                                     <th></th>
                                 </tr>
                             </thead>
@@ -219,6 +325,13 @@
                             </tbody>
                         </table>
                     </div>
+                </div>
+
+                <!-- Paginación -->
+                <div class="admin-pagination">
+                    <button id="btnPrevPage" class="btn-page" onclick="loadUsersRegistry(adminUsersPage - 1)" disabled>← Anterior</button>
+                    <span id="adminPageInfo" class="page-info">Página 1</span>
+                    <button id="btnNextPage" class="btn-page" onclick="loadUsersRegistry(adminUsersPage + 1)" disabled>Siguiente →</button>
                 </div>
 
                 <!-- Top preguntas frecuentes -->
@@ -245,6 +358,16 @@
                 </div>
             </div>
         </div>
+
+        <!-- Nav tabs (solo usuarios no-admin) -->
+        <nav id="appNav" class="app-nav" style="display:none">
+            <button class="app-nav-btn active" data-tab="analizar" onclick="showAppTab('analizar')">
+                <i class="fas fa-file-contract"></i> Analizar Contrato
+            </button>
+            <button class="app-nav-btn" data-tab="historial" onclick="showAppTab('historial')">
+                <i class="fas fa-history"></i> Mis Contratos
+            </button>
+        </nav>
 
         <!-- Main Content -->
         <main class="main-content">
@@ -292,6 +415,53 @@
                 </div>
             </section>
 
+            <!-- Estudios Agotados (bloqueo freemium) -->
+            <section class="blocked-section" id="blockedSection" style="display:none">
+                <div class="blocked-card">
+                    <div class="blocked-icon"><i class="fas fa-lock"></i></div>
+                    <h2>Has agotado tus estudios gratuitos</h2>
+                    <p>Con el plan gratuito puedes analizar hasta <strong>5 contratos</strong>. Para seguir protegiendo tus arrendamientos, elige un plan.</p>
+                    <div class="blocked-actions">
+                        <a href="https://wa.me/573337124882?text=Hola%2C%20quiero%20contratar%20un%20plan%20de%20InmoLawyer"
+                           target="_blank" class="btn-whatsapp-block">
+                            <i class="fab fa-whatsapp"></i> Hablar con ventas por WhatsApp
+                        </a>
+                        <button onclick="showPricingModal()" class="btn-ver-planes">
+                            <i class="fas fa-tag"></i> Ver planes y precios
+                        </button>
+                    </div>
+                    <p class="blocked-note">¿Ya compraste un plan? <a href="#" onclick="window.location.reload()">Recarga la página</a> para ver tus estudios actualizados.</p>
+                </div>
+            </section>
+
+            <!-- Historial de contratos del usuario -->
+            <section id="historialSection" style="display:none" class="historial-section">
+                <div class="historial-header">
+                    <h2><i class="fas fa-history"></i> Mis Contratos Analizados</h2>
+                    <span id="historialCount" class="historial-count"></span>
+                </div>
+                <div id="historialEmpty" class="historial-empty" style="display:none">
+                    <i class="fas fa-folder-open"></i>
+                    <p>Todavía no has analizado ningún contrato.</p>
+                    <button class="btn-auth" onclick="showAppTab('analizar')">Analizar mi primer contrato</button>
+                </div>
+                <div id="historialTable" class="historial-table-wrap" style="display:none">
+                    <table class="historial-table">
+                        <thead>
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Arrendatario</th>
+                                <th>Arrendador</th>
+                                <th>Ciudad</th>
+                                <th>Score</th>
+                                <th>PDF</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historialTbody"></tbody>
+                    </table>
+                </div>
+            </section>
+
             <!-- Loading State -->
             <section class="loading-section" id="loadingSection" style="display: none;">
                 <div class="loading-card">
@@ -321,19 +491,22 @@
 
             <!-- Results Section -->
             <section class="results-section" id="resultsSection" style="display: none;">
-                <!-- Risk Score -->
-                <div class="risk-score-card" id="riskScoreCard">
-                    <div class="score-circle" id="scoreCircle">
-                        <span class="score-value" id="scoreValue">--</span>
-                        <span class="score-label">Riesgo</span>
+
+                <!-- ── HERO: Score + Nivel de Riesgo + Acciones ── -->
+                <div class="result-hero" id="riskScoreCard">
+                    <div class="result-hero-score">
+                        <div class="score-circle" id="scoreCircle">
+                            <span class="score-value" id="scoreValue">--</span>
+                            <span class="score-label">Riesgo</span>
+                        </div>
                     </div>
-                    <div class="score-info">
+                    <div class="result-hero-info">
                         <h2 id="scoreTitle">Analizando...</h2>
                         <p id="scoreDescription">Evaluando el contrato</p>
                     </div>
-                    <div class="score-actions">
+                    <div class="result-hero-actions">
                         <button class="btn-new-analysis" id="btnNewAnalysis">
-                            <i class="fas fa-redo"></i> Nuevo Analisis
+                            <i class="fas fa-redo"></i> Nuevo Análisis
                         </button>
                         <button class="btn-download-pdf" id="btnDownloadPdf">
                             <i class="fas fa-file-pdf"></i> Descargar PDF
@@ -341,24 +514,29 @@
                     </div>
                 </div>
 
-                <!-- Contract Data -->
-                <div class="data-grid">
-                    <!-- Parties -->
+                <!-- ── FILA 1: Partes | Inmueble + Detalles ── -->
+                <div class="result-row">
+
+                    <!-- Partes del Contrato -->
                     <div class="data-card parties-card">
-                        <h3><i class="fas fa-users"></i> Partes del Contrato</h3>
+                        <div class="card-header">
+                            <span class="ch-icon"><i class="fas fa-users"></i></span>
+                            <h3>Partes del Contrato</h3>
+                        </div>
                         <div class="parties-container">
                             <div class="party arrendador">
+                                <span class="party-badge">Arrendador</span>
                                 <div class="party-icon"><i class="fas fa-building"></i></div>
                                 <div class="party-info">
-                                    <label>Arrendador</label>
                                     <span id="arrendadorNombre">-</span>
                                     <small id="arrendadorDoc">-</small>
                                 </div>
                             </div>
+                            <div class="party-divider"><i class="fas fa-arrows-alt-v"></i></div>
                             <div class="party arrendatario">
+                                <span class="party-badge">Arrendatario</span>
                                 <div class="party-icon"><i class="fas fa-user"></i></div>
                                 <div class="party-info">
-                                    <label>Arrendatario</label>
                                     <span id="arrendatarioNombre">-</span>
                                     <small id="arrendatarioDoc">-</small>
                                 </div>
@@ -366,142 +544,166 @@
                         </div>
                     </div>
 
-                    <!-- Deudores Solidarios -->
-                    <div class="data-card deudores-card" id="deudoresCard" style="display: none;">
-                        <h3><i class="fas fa-user-shield"></i> Deudores Solidarios / Fiadores</h3>
-                        <div class="deudores-container" id="deudoresContainer">
-                            <!-- Populated by JS -->
-                        </div>
-                    </div>
+                    <!-- Columna derecha: Inmueble + Detalles apilados -->
+                    <div class="result-col">
 
-                    <!-- Property -->
-                    <div class="data-card property-card">
-                        <h3><i class="fas fa-home"></i> Inmueble</h3>
-                        <div class="property-info">
-                            <div class="info-row">
-                                <i class="fas fa-map-marker-alt"></i>
-                                <span id="direccion">-</span>
+                        <!-- Inmueble -->
+                        <div class="data-card property-card">
+                            <div class="card-header">
+                                <span class="ch-icon"><i class="fas fa-home"></i></span>
+                                <h3>Inmueble</h3>
                             </div>
-                            <div class="info-row">
-                                <i class="fas fa-city"></i>
-                                <span id="ciudad">-</span>
+                            <div class="property-info">
+                                <div class="info-row">
+                                    <i class="fas fa-map-marker-alt"></i>
+                                    <span id="direccion">-</span>
+                                </div>
+                                <div class="info-row">
+                                    <i class="fas fa-city"></i>
+                                    <span id="ciudad">-</span>
+                                </div>
                             </div>
                         </div>
-                    </div>
 
-                    <!-- Contract Details -->
-                    <div class="data-card details-card">
-                        <h3><i class="fas fa-file-invoice-dollar"></i> Detalles</h3>
-                        <div class="details-grid">
-                            <div class="detail">
-                                <label>Canon Mensual</label>
-                                <span id="canon">-</span>
+                        <!-- Detalles económicos -->
+                        <div class="data-card details-card">
+                            <div class="card-header">
+                                <span class="ch-icon"><i class="fas fa-file-invoice-dollar"></i></span>
+                                <h3>Detalles del Contrato</h3>
                             </div>
-                            <div class="detail">
-                                <label>Fecha Inicio</label>
-                                <span id="fechaInicio">-</span>
-                            </div>
-                            <div class="detail">
-                                <label>Duracion</label>
-                                <span id="duracion">-</span>
-                            </div>
-                            <div class="detail">
-                                <label>Vencimiento</label>
-                                <span id="vencimiento">-</span>
+                            <div class="details-grid">
+                                <div class="detail">
+                                    <label>Canon Mensual</label>
+                                    <span id="canon">-</span>
+                                </div>
+                                <div class="detail">
+                                    <label>Fecha Inicio</label>
+                                    <span id="fechaInicio">-</span>
+                                </div>
+                                <div class="detail">
+                                    <label>Duración</label>
+                                    <span id="duracion">-</span>
+                                </div>
+                                <div class="detail">
+                                    <label>Vencimiento</label>
+                                    <span id="vencimiento">-</span>
+                                </div>
                             </div>
                         </div>
+
+                    </div><!-- /result-col -->
+                </div><!-- /result-row -->
+
+                <!-- ── Deudores Solidarios (ancho completo, condicional) ── -->
+                <div class="data-card deudores-card" id="deudoresCard" style="display: none;">
+                    <div class="card-header">
+                        <span class="ch-icon"><i class="fas fa-user-shield"></i></span>
+                        <h3>Deudores Solidarios / Fiadores</h3>
                     </div>
+                    <div class="deudores-container" id="deudoresContainer"></div>
                 </div>
 
-                <!-- Alerts Section -->
-                <div class="alerts-section">
-                    <h3><i class="fas fa-exclamation-triangle"></i> Alertas del Analisis</h3>
-                    <div class="alerts-container" id="alertsContainer">
-                        <!-- Alerts will be populated here -->
+                <!-- ── Alertas (ancho completo) ── -->
+                <div class="data-card alerts-card">
+                    <div class="card-header">
+                        <span class="ch-icon alerts-icon"><i class="fas fa-exclamation-triangle"></i></span>
+                        <h3>Alertas del Análisis</h3>
                     </div>
+                    <div class="alerts-container" id="alertsContainer"></div>
                 </div>
 
-                <!-- Increments Section -->
-                <div class="increments-section">
-                    <h3><i class="fas fa-chart-line"></i> Incrementos Anuales (IPC)</h3>
-                    <div class="increments-summary">
-                        <div class="increment-highlight">
-                            <label>Proximo Incremento Permitido</label>
-                            <span id="proximoIncremento">-</span>
-                            <small id="ipcInfo">Basado en IPC DANE</small>
-                        </div>
-                    </div>
-                    <div class="increments-table-container">
-                        <table class="increments-table" id="incrementsTable">
-                            <thead>
-                                <tr>
-                                    <th>Año</th>
-                                    <th>IPC</th>
-                                    <th>Canon Anterior</th>
-                                    <th>Incremento</th>
-                                    <th>Canon Nuevo</th>
-                                </tr>
-                            </thead>
-                            <tbody id="incrementsBody">
-                                <!-- Rows will be populated here -->
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+                <!-- ── FILA 2: IPC | Fechas Importantes ── -->
+                <div class="result-row">
 
-                <!-- Important Dates -->
-                <div class="dates-section">
-                    <h3><i class="fas fa-calendar-alt"></i> Fechas Importantes</h3>
-                    <div class="dates-grid">
-                        <div class="date-card warning">
-                            <i class="fas fa-percentage"></i>
-                            <div class="date-info">
-                                <label>Notificar Incremento</label>
-                                <span id="fechaNotifIncremento">-</span>
-                                <small>1 mes antes del aniversario</small>
+                    <!-- Incrementos IPC -->
+                    <div class="data-card increments-card">
+                        <div class="card-header">
+                            <span class="ch-icon"><i class="fas fa-chart-line"></i></span>
+                            <h3>Incrementos Anuales (IPC)</h3>
+                        </div>
+                        <div class="increments-summary">
+                            <div class="increment-highlight">
+                                <label>Próximo Incremento Permitido</label>
+                                <span id="proximoIncremento">-</span>
+                                <small id="ipcInfo">Basado en IPC DANE</small>
                             </div>
                         </div>
-                        <div class="date-card danger">
-                            <i class="fas fa-door-open"></i>
-                            <div class="date-info">
-                                <label>Notificar Terminacion</label>
-                                <span id="fechaNotifTerminacion">-</span>
-                                <small>3 meses antes (Art. 24)</small>
-                            </div>
+                        <div class="increments-table-container">
+                            <table class="increments-table" id="incrementsTable">
+                                <thead>
+                                    <tr>
+                                        <th>Año</th>
+                                        <th>IPC</th>
+                                        <th>Canon Ant.</th>
+                                        <th>Incremento</th>
+                                        <th>Canon Nuevo</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="incrementsBody"></tbody>
+                            </table>
                         </div>
-                        <div class="date-card info">
-                            <i class="fas fa-calendar-check"></i>
-                            <div class="date-info">
-                                <label>Proximo Incremento</label>
-                                <span id="fechaProximoIncremento">-</span>
-                                <small>Aniversario del contrato</small>
+                    </div>
+
+                    <!-- Fechas Importantes -->
+                    <div class="data-card dates-card">
+                        <div class="card-header">
+                            <span class="ch-icon"><i class="fas fa-calendar-alt"></i></span>
+                            <h3>Fechas Importantes</h3>
+                        </div>
+                        <div class="dates-list">
+                            <div class="date-item warning">
+                                <div class="date-icon"><i class="fas fa-percentage"></i></div>
+                                <div class="date-info">
+                                    <label>Notificar Incremento</label>
+                                    <span id="fechaNotifIncremento">-</span>
+                                    <small>1 mes antes del aniversario</small>
+                                </div>
+                            </div>
+                            <div class="date-item danger">
+                                <div class="date-icon"><i class="fas fa-door-open"></i></div>
+                                <div class="date-info">
+                                    <label>Notificar Terminación</label>
+                                    <span id="fechaNotifTerminacion">-</span>
+                                    <small>3 meses antes (Art. 24)</small>
+                                </div>
+                            </div>
+                            <div class="date-item info">
+                                <div class="date-icon"><i class="fas fa-calendar-check"></i></div>
+                                <div class="date-info">
+                                    <label>Próximo Incremento</label>
+                                    <span id="fechaProximoIncremento">-</span>
+                                    <small>Aniversario del contrato</small>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
 
-                <!-- Chat Section -->
-                <div class="chat-section">
-                    <h3><i class="fas fa-comments"></i> Consulta con tu Abogado Virtual</h3>
-                    <p class="chat-intro">Preguntame lo que quieras sobre tu contrato. Te respondo con fundamento en la Ley 820 de 2003 y te doy modelos de comunicacion si los necesitas.</p>
+                </div><!-- /result-row -->
 
+                <!-- ── Chat: Abogado Virtual (ancho completo) ── -->
+                <div class="data-card chat-card">
+                    <div class="card-header">
+                        <span class="ch-icon"><i class="fas fa-comments"></i></span>
+                        <h3>Consulta con tu Abogado Virtual</h3>
+                    </div>
+                    <p class="chat-intro">Pregúntame lo que quieras sobre tu contrato. Te respondo con fundamento en la Ley 820 de 2003 y te doy modelos de comunicación si los necesitas.</p>
                     <div class="chat-container" id="chatContainer">
                         <div class="chat-messages" id="chatMessages">
                             <div class="message assistant">
                                 <div class="avatar"><i class="fas fa-balance-scale"></i></div>
                                 <div class="content">
-                                    <p>Soy tu abogado virtual especializado en arrendamientos. Ya analice tu contrato. Puedes preguntarme:</p>
+                                    <p>Soy tu abogado virtual especializado en arrendamientos. Ya analicé tu contrato. Puedes preguntarme:</p>
                                     <ul>
-                                        <li>"Es legal el deposito que me piden?"</li>
-                                        <li>"Como notifico que quiero terminar el contrato?"</li>
-                                        <li>"Pueden subirme el arriendo mas del IPC?"</li>
-                                        <li>"Que clausulas son abusivas?"</li>
+                                        <li>"¿Es legal el depósito que me piden?"</li>
+                                        <li>"¿Cómo notifico que quiero terminar el contrato?"</li>
+                                        <li>"¿Pueden subirme el arriendo más del IPC?"</li>
+                                        <li>"¿Qué cláusulas son abusivas?"</li>
                                     </ul>
                                 </div>
                             </div>
                         </div>
                         <div class="chat-input-container">
-                            <input type="text" id="chatInput" placeholder="Escribe tu pregunta legal aqui..." autocomplete="off">
+                            <input type="text" id="chatInput" placeholder="Escribe tu pregunta legal aquí..." autocomplete="off">
                             <button id="sendBtn" class="btn-send">
                                 <i class="fas fa-paper-plane"></i>
                             </button>
@@ -509,7 +711,7 @@
                     </div>
                 </div>
 
-                <!-- Contract Text (Collapsible) -->
+                <!-- ── Texto del Contrato (colapsable) ── -->
                 <div class="contract-text-section">
                     <button class="collapse-btn" id="toggleContractText">
                         <i class="fas fa-chevron-down"></i>
@@ -519,6 +721,7 @@
                         <pre id="contractText"></pre>
                     </div>
                 </div>
+
             </section>
         </main>
 
@@ -529,11 +732,33 @@
         </footer>
     </div>
 
+    <!-- ===== MODAL: VINCULAR WHATSAPP ===== -->
+    <div id="waLinkModal" class="wa-modal-overlay" style="display:none" onclick="if(event.target===this)closeWhatsAppModal()">
+        <div class="wa-modal-box">
+            <button class="wa-modal-close" onclick="closeWhatsAppModal()">
+                <i class="fas fa-times"></i>
+            </button>
+            <div class="wa-modal-icon">
+                <i class="fab fa-whatsapp"></i>
+            </div>
+            <h2>Vincula tu WhatsApp</h2>
+            <p class="wa-modal-desc">Analiza contratos directamente desde WhatsApp. Escanea el QR o toca el boton desde tu celular.</p>
+            <div class="wa-qr-container">
+                <img id="waQrCode" src="" alt="QR WhatsApp" width="200" height="200">
+            </div>
+            <p class="wa-code-label">Tu codigo de verificacion:</p>
+            <div class="wa-code-display" id="waVerificationCode">------</div>
+            <a id="waDirectLink" href="#" target="_blank" class="wa-direct-btn">
+                <i class="fab fa-whatsapp"></i> Abrir WhatsApp
+            </a>
+            <p class="wa-modal-note">Tambien podes vincular despues desde la app.</p>
+        </div>
+    </div>
+
     <!-- Toast Container -->
     <div class="toast-container" id="toastContainer"></div>
 
-    <script src="https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js"></script>
-    <script src="auth.js?v=3"></script>
-    <script src="app.js?v=3"></script>
+    <script src="auth.js?v=7" defer></script>
+    <script src="app.js?v=7" defer></script>
 </body>
 </html>

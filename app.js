@@ -1,17 +1,295 @@
-// InmoLawyer - Frontend App v3.0
-// Arquitectura Síncrona - Respuesta Directa
+// InmoLawyer - Frontend App v4.1
+// Arquitectura Asíncrona - Polling por Job ID
+
+// ===== LAZY-LOAD HELPERS =====
+
+function loadScript(src) {
+    return new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = src;
+        s.onload = resolve;
+        s.onerror = () => reject(new Error('Failed to load: ' + src));
+        document.head.appendChild(s);
+    });
+}
+
+async function loadPDFLibraries() {
+    if (window.jspdf) return; // ya cargado
+    // Cargar secuencialmente: autoTable es plugin de jsPDF y necesita que jsPDF exista primero
+    await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
+    await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js');
+}
+
+async function loadMammoth() {
+    if (window.mammoth) return; // ya cargado
+    await loadScript('https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js');
+}
 
 const CONFIG = {
-    N8N_BASE_URL: 'https://n8n.feche.xyz/webhook',
+    N8N_BASE_URL: 'https://oqipslfzbeioakfllohm.supabase.co/functions/v1',
     ENDPOINTS: {
         ANALYZE: '/analizar-contrato',
+        STATUS: '/status',
         CHAT: '/consulta-contrato'
     },
-    TIMEOUT: 300000 // 5 minutos para análisis con OCR de contratos escaneados
+    TIMEOUT: 30000,       // 30s para el submit inicial (solo obtener job_id)
+    POLL_INTERVAL: 4000,  // 4s entre cada poll
+    POLL_MAX_ATTEMPTS: 90 // máximo 6 minutos de polling
+};
+
+// ===== WOMPI: Configuración de pagos =====
+const CONFIG_WOMPI = {
+    publicKey: 'pub_prod_uohbfwCKYyrQ0LN3EuKK18cNE6gv5yL5',
+    checkoutUrl: 'https://checkout.wompi.co/p/',
+    redirectUrl: 'https://inmolawyer.surge.sh/app.html',
+    currency: 'COP',
+    // Endpoint N8N que genera el integrity hash (secreto de integridad nunca va al frontend)
+    integrityEndpoint: 'https://oqipslfzbeioakfllohm.supabase.co/functions/v1/wompi-integrity',
+    plans: [
+        {
+            id: 'single',
+            name: 'Estudio Único',
+            description: '1 análisis de contrato completo',
+            price: 4990000, // centavos COP = $49,900
+            priceFormatted: '$49.900',
+            credits: 1,
+            icon: 'fas fa-file-contract',
+            badge: null,
+            savings: null,
+            pricePerUnit: null,
+            features: [
+                '1 análisis de contrato',
+                'Score de riesgo (0–100)',
+                'Detección de cláusulas abusivas',
+                'Chat legal incluido',
+                'Descarga PDF del reporte'
+            ]
+        },
+        {
+            id: 'pack5',
+            name: 'Pack 5 Estudios',
+            description: '5 análisis para ti o tus clientes',
+            price: 19990000, // $199,900
+            priceFormatted: '$199.900',
+            credits: 5,
+            icon: 'fas fa-layer-group',
+            badge: 'Más popular',
+            savings: '20% dcto',
+            pricePerUnit: '$39.980/estudio',
+            features: [
+                '5 análisis de contratos',
+                'Score de riesgo (0–100)',
+                'Detección de cláusulas abusivas',
+                'Chat legal incluido',
+                'Descarga PDF de cada análisis'
+            ]
+        },
+        {
+            id: 'pack10',
+            name: 'Pack 10 Estudios',
+            description: '10 análisis al mejor precio',
+            price: 34990000, // $349,900
+            priceFormatted: '$349.900',
+            credits: 10,
+            icon: 'fas fa-boxes',
+            badge: 'Mayor ahorro',
+            savings: '30% dcto',
+            pricePerUnit: '$34.990/estudio',
+            features: [
+                '10 análisis de contratos',
+                'Score de riesgo (0–100)',
+                'Detección de cláusulas abusivas',
+                'Chat legal incluido',
+                'Descarga PDF de cada análisis',
+                'Atención prioritaria por WhatsApp'
+            ]
+        }
+    ]
 };
 
 // State
 let currentContractId = null;
+
+// ===== FREEMIUM: control de estudios y chat =====
+const chatQuestionsUsed = {}; // { [contractId]: true } — 1 pregunta por contrato
+
+function updateStudiosCounter() {
+    const el = document.getElementById('estudiosCounter');
+    if (!el) return;
+
+    // Admin no ve el contador
+    if (isAdmin()) {
+        el.style.display = 'none';
+        return;
+    }
+
+    const profile = (typeof currentUserProfile !== 'undefined') ? currentUserProfile : null;
+    if (!profile) { el.style.display = 'none'; return; }
+
+    const restantes = profile.estudios_restantes ?? 5;
+    const plan = profile.plan ?? 'freemium';
+
+    if (plan === 'freemium') {
+        el.style.display = 'inline-flex';
+        el.className = 'estudios-counter' + (restantes <= 1 ? ' counter-low' : '');
+        el.innerHTML = `<i class="fas fa-file-alt"></i> ${restantes} de 5 estudios gratuitos`;
+    } else {
+        el.style.display = 'inline-flex';
+        el.className = 'estudios-counter counter-paid';
+        el.innerHTML = `<i class="fas fa-file-alt"></i> ${restantes} estudios restantes`;
+    }
+}
+
+async function decrementEstudios() {
+    if (isAdmin()) return;
+    const profile = (typeof currentUserProfile !== 'undefined') ? currentUserProfile : null;
+    if (!profile) return;
+
+    const nuevos = Math.max(0, (profile.estudios_restantes ?? 0) - 1);
+    profile.estudios_restantes = nuevos; // actualizar local inmediatamente
+
+    await supabaseClient
+        .from('user_profiles')
+        .update({ estudios_restantes: nuevos })
+        .eq('id', currentUser.id);
+
+    updateStudiosCounter();
+}
+
+function hasEstudiosDisponibles() {
+    if (isAdmin()) return true;
+    const profile = (typeof currentUserProfile !== 'undefined') ? currentUserProfile : null;
+    if (!profile) return false;
+    return (profile.estudios_restantes ?? 0) > 0;
+}
+
+function showSectionBlocked() {
+    document.getElementById('uploadSection').style.display = 'none';
+    document.getElementById('loadingSection').style.display = 'none';
+    document.getElementById('resultsSection').style.display = 'none';
+    document.getElementById('blockedSection').style.display = 'flex';
+}
+
+// ===== WOMPI: Integración de pagos =====
+
+function showPricingModal() {
+    const modal = document.getElementById('pricingModal');
+    if (!modal) return;
+
+    // Si la llave pública no está configurada, redirigir a WhatsApp
+    if (CONFIG_WOMPI.publicKey.includes('REPLACE')) {
+        showToast('Sistema de pagos en configuración. Te contactamos por WhatsApp.', 'info');
+        window.open('https://wa.me/573337124882?text=Hola%2C%20quiero%20comprar%20estudios%20en%20InmoLawyer', '_blank');
+        return;
+    }
+
+    renderPricingPlans();
+    modal.style.display = 'flex';
+}
+
+function closePricingModal() {
+    const modal = document.getElementById('pricingModal');
+    if (modal) modal.style.display = 'none';
+}
+
+function renderPricingPlans() {
+    const container = document.getElementById('pricingPlansContainer');
+    if (!container) return;
+
+    const userId = (typeof currentUser !== 'undefined' && currentUser)
+        ? currentUser.id.replace(/-/g, '').substring(0, 8)
+        : 'anon';
+
+    container.innerHTML = CONFIG_WOMPI.plans.map(plan => {
+        // Referencia única por transacción
+        const reference = `INMO-${userId}-${plan.id}-${Date.now()}`;
+        const featuresHtml = plan.features
+            .map(f => `<li><i class="fas fa-check"></i> ${f}</li>`)
+            .join('');
+        const badgeHtml = plan.badge
+            ? `<span class="plan-badge">${plan.badge}</span>` : '';
+        const savingsHtml = plan.savings
+            ? `<span class="plan-savings">${plan.savings}</span>` : '';
+        const perUnitHtml = plan.pricePerUnit
+            ? `<p class="plan-per-unit">${plan.pricePerUnit}</p>` : '';
+
+        return `
+        <div class="plan-card${plan.badge === 'Más popular' ? ' plan-featured' : ''}">
+            ${badgeHtml}
+            <div class="plan-icon"><i class="${plan.icon}"></i></div>
+            <h3 class="plan-name">${plan.name}</h3>
+            <p class="plan-desc">${plan.description}</p>
+            <div class="plan-price-block">
+                <span class="plan-price-amount">${plan.priceFormatted}</span>
+                <span class="plan-price-currency">COP</span>
+                ${savingsHtml}
+            </div>
+            ${perUnitHtml}
+            <ul class="plan-features">${featuresHtml}</ul>
+            <div class="wompi-form">
+                <button type="button" class="btn-comprar"
+                    onclick="initiateWompiCheckout(this, '${reference}', ${plan.price})">
+                    <i class="fas fa-shopping-cart"></i> Comprar ahora
+                </button>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+async function initiateWompiCheckout(btn, reference, amountInCents) {
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Procesando...';
+
+    try {
+        // Obtener integrity hash desde N8N (el secreto nunca sale del servidor)
+        const resp = await fetch(CONFIG_WOMPI.integrityEndpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                reference,
+                amountInCents,
+                currency: CONFIG_WOMPI.currency
+            })
+        });
+
+        if (!resp.ok) throw new Error(`N8N responded ${resp.status}`);
+
+        const { integrity } = await resp.json();
+        if (!integrity) throw new Error('Missing integrity hash in response');
+
+        // Construir URL de checkout con todos los campos requeridos
+        const params = new URLSearchParams({
+            'public-key': CONFIG_WOMPI.publicKey,
+            'currency': CONFIG_WOMPI.currency,
+            'amount-in-cents': amountInCents,
+            'reference': reference,
+            'redirect-url': CONFIG_WOMPI.redirectUrl,
+            'signature:integrity': integrity
+        });
+
+        window.location.href = `${CONFIG_WOMPI.checkoutUrl}?${params.toString()}`;
+
+    } catch (err) {
+        console.error('Wompi checkout error:', err);
+        showToast('Error iniciando el pago. Intenta de nuevo.', 'error');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-shopping-cart"></i> Comprar ahora';
+    }
+}
+
+function handleWompiReturn() {
+    const params = new URLSearchParams(window.location.search);
+    const transactionId = params.get('id');
+    if (!transactionId) return;
+
+    // Limpiar parámetros de la URL sin recargar
+    window.history.replaceState({}, document.title, window.location.pathname);
+
+    // Notificar al usuario — N8N webhook procesa y actualiza Supabase en el fondo
+    setTimeout(() => {
+        showToast('¡Pago recibido! Tus créditos se activarán en unos segundos. Recarga si no ves el cambio.', 'success');
+    }, 1200);
+}
 
 // DOM Elements
 const uploadSection = document.getElementById('uploadSection');
@@ -30,6 +308,7 @@ function initApp() {
     initCollapsible();
     initNewAnalysis();
     initDownloadPdf();
+    handleWompiReturn(); // detectar retorno de pago Wompi
 }
 
 // ===== Upload Functionality =====
@@ -64,6 +343,12 @@ function handleFileSelect(e) {
 }
 
 async function processFile(file) {
+    // Verificar estudios disponibles antes de procesar
+    if (!hasEstudiosDisponibles()) {
+        showSectionBlocked();
+        return;
+    }
+
     const validTypes = ['application/pdf', 'text/plain',
         'application/msword',
         'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
@@ -74,6 +359,15 @@ async function processFile(file) {
         showErrorBanner(
             'Formato no soportado',
             'Por favor sube el contrato en formato PDF, DOCX o TXT.'
+        );
+        return;
+    }
+
+    const MAX_FILE_SIZE_MB = 10;
+    if (file.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
+        showErrorBanner(
+            'Archivo muy grande',
+            `El archivo supera los ${MAX_FILE_SIZE_MB} MB permitidos. Reduce el tamaño o convierte a TXT.`
         );
         return;
     }
@@ -89,6 +383,7 @@ async function processFile(file) {
     if (isDocx) {
         try {
             updateLoadingStep(1, 'Leyendo documento Word...');
+            await loadMammoth(); // lazy-load: solo si es .docx
             const arrayBuffer = await file.arrayBuffer();
             const result = await mammoth.extractRawText({ arrayBuffer });
             const textoExtraido = result.value ? result.value.trim() : '';
@@ -112,39 +407,44 @@ async function processFile(file) {
 
     try {
         updateLoadingStep(2, 'Extrayendo texto del contrato...');
-
-        // Pequeña pausa para UX
         await new Promise(r => setTimeout(r, 500));
 
         updateLoadingStep(3, 'Analizando cláusulas con IA...');
 
-        // Llamada directa - esperar respuesta completa del análisis
         const response = await submitContract(file);
-
         console.log('Respuesta del servidor:', response);
 
+        // --- Async: servidor devolvió job_id → hacer polling ---
+        let finalResult;
+        if (response.job_id) {
+            finalResult = await pollJobStatus(response.job_id);
+        } else {
+            // Respuesta síncrona (fallback, contratos pequeños que respondieron directo)
+            finalResult = response;
+        }
+
         // Si el LLM detectó que no es un contrato de arrendamiento de vivienda urbana
-        if (response.error === true) {
+        if (finalResult.error === true) {
             showSection('upload');
             showErrorBanner(
                 'Documento no compatible con Ley 820',
-                response.motivo || 'El documento no es un contrato de arrendamiento de vivienda urbana válido.'
+                finalResult.motivo || 'El documento no es un contrato de arrendamiento de vivienda urbana válido.'
             );
             return;
         }
 
-        if (!response.success) {
-            throw new Error(response.error || 'Error al analizar el contrato');
+        if (!finalResult.success) {
+            throw new Error(finalResult.error || 'Error al analizar el contrato');
         }
 
         updateLoadingStep(4, 'Análisis completado!');
-
-        // Pequeña pausa para mostrar "completado"
         await new Promise(r => setTimeout(r, 500));
 
-        lastAnalysisData = response;
-        displayResults(response);
+        lastAnalysisData = finalResult;
+        displayResults(finalResult);
         showSection('results');
+
+        await decrementEstudios();
 
     } catch (error) {
         console.error('Error processing file:', error);
@@ -202,6 +502,62 @@ async function submitContract(file) {
         clearTimeout(timeoutId);
         throw error;
     }
+}
+
+// ===== Polling de Job Status (consulta Supabase directamente) =====
+async function pollJobStatus(jobId) {
+    for (let attempt = 0; attempt < CONFIG.POLL_MAX_ATTEMPTS; attempt++) {
+        await new Promise(r => setTimeout(r, CONFIG.POLL_INTERVAL));
+
+        // Mensajes de carga progresivos
+        if (attempt === 8)  updateLoadingStep(3, 'Procesando con OCR (contrato escaneado)...');
+        if (attempt === 20) updateLoadingStep(3, 'Analizando cláusulas (puede tardar 2-3 min)...');
+        if (attempt === 40) updateLoadingStep(3, 'Casi listo, finalizando análisis...');
+
+        console.log(`Poll #${attempt + 1} — job: ${jobId}`);
+
+        try {
+            const { data: job, error: jobErr } = await supabaseClient
+                .from('job_queue')
+                .select('job_id, status, contrato_id')
+                .eq('job_id', jobId)
+                .single();
+
+            if (jobErr || !job) {
+                console.warn(`Poll #${attempt + 1} — job no encontrado aún`);
+                continue;
+            }
+
+            console.log(`Poll #${attempt + 1} — status: ${job.status}`);
+
+            if (job.status === 'error') {
+                throw new Error('Error al procesar el contrato en el servidor');
+            }
+
+            if (job.status === 'completed' && job.contrato_id) {
+                const { data: contrato, error: cErr } = await supabaseClient
+                    .from('contratos')
+                    .select('*')
+                    .eq('id', job.contrato_id)
+                    .single();
+
+                if (!cErr && contrato) {
+                    // Merge resultado_json (full analysis data) into top-level
+                    // so alertas, incrementos, fechas_importantes, analisis, canon, direccion are accessible
+                    const rj = contrato.resultado_json || {};
+                    return { ...contrato, ...rj, success: true, contratoId: contrato.id };
+                }
+            }
+
+        } catch (err) {
+            if (err.message && err.message !== 'Failed to fetch' && !err.message.includes('NetworkError')) {
+                throw err;
+            }
+            console.warn(`Poll #${attempt + 1} error red:`, err.message);
+        }
+    }
+
+    throw new Error('El análisis tardó demasiado tiempo. Por favor intenta de nuevo.');
 }
 
 // ===== Display Results =====
@@ -465,6 +821,8 @@ function initChat() {
     });
 }
 
+const chatRateLimit = { lastSent: 0, minInterval: 3000 }; // 3s entre mensajes
+
 async function sendChatMessage() {
     const chatInput = document.getElementById('chatInput');
     const chatMessages = document.getElementById('chatMessages');
@@ -476,6 +834,23 @@ async function sendChatMessage() {
     if (!currentContractId) {
         showToast('Primero debes analizar un contrato', 'warning');
         return;
+    }
+
+    const now = Date.now();
+    if (now - chatRateLimit.lastSent < chatRateLimit.minInterval) {
+        showToast('Espera un momento antes de enviar otro mensaje.', 'info');
+        return;
+    }
+    chatRateLimit.lastSent = now;
+
+    // Límite freemium: 1 pregunta por contrato
+    if (!isAdmin() && currentContractId && chatQuestionsUsed[currentContractId]) {
+        const profile = (typeof currentUserProfile !== 'undefined') ? currentUserProfile : null;
+        const plan = profile?.plan ?? 'freemium';
+        if (plan === 'freemium') {
+            showToast('En el plan gratuito solo puedes hacer 1 pregunta por contrato.', 'warning');
+            return;
+        }
     }
 
     addChatMessage(message, 'user');
@@ -510,6 +885,9 @@ async function sendChatMessage() {
             addChatMessage('Lo siento, no pude procesar tu consulta. Intenta de nuevo.', 'assistant');
         }
 
+        // Marcar pregunta como usada para este contrato (freemium: 1 por contrato)
+        if (currentContractId) chatQuestionsUsed[currentContractId] = true;
+
     } catch (error) {
         console.error('Chat error:', error);
         removeTypingIndicator(typingId);
@@ -540,24 +918,33 @@ function addChatMessage(content, type) {
     chatMessages.scrollTop = chatMessages.scrollHeight;
 }
 
-function formatChatResponse(text) {
-    text = text.replace(/^## (.*?)$/gm, '<h2>$1</h2>');
-    text = text.replace(/^### (.*?)$/gm, '<h3>$1</h3>');
-    text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-    text = text.replace(/^- (.*?)$/gm, '<li>$1</li>');
-    text = text.replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>');
-    text = text.replace(/```([\s\S]*?)```/g, '<pre>$1</pre>');
-    text = text.replace(/---\n([\s\S]*?)---/g, '<pre>$1</pre>');
+function sanitizeHTML(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
 
-    text = text.split('\n\n').map(p => {
+function formatChatResponse(text) {
+    // Sanear primero para prevenir XSS, luego aplicar solo los patrones de markdown conocidos
+    let safe = sanitizeHTML(text);
+
+    safe = safe.replace(/^## (.*?)$/gm, '<h2>$1</h2>');
+    safe = safe.replace(/^### (.*?)$/gm, '<h3>$1</h3>');
+    safe = safe.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    safe = safe.replace(/^- (.*?)$/gm, '<li>$1</li>');
+    safe = safe.replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>');
+    safe = safe.replace(/```([\s\S]*?)```/g, '<pre>$1</pre>');
+    safe = safe.replace(/---\n([\s\S]*?)---/g, '<pre>$1</pre>');
+
+    safe = safe.split('\n\n').map(p => {
         if (p.startsWith('<') || p.trim() === '') return p;
         return `<p>${p}</p>`;
     }).join('');
 
-    text = text.replace(/<p><\/p>/g, '');
-    text = text.replace(/\n/g, ' ');
+    safe = safe.replace(/<p><\/p>/g, '');
+    safe = safe.replace(/\n/g, ' ');
 
-    return text;
+    return safe;
 }
 
 function addTypingIndicator() {
@@ -635,10 +1022,15 @@ function initNewAnalysis() {
 }
 
 // ===== UI Helpers =====
+let currentAppState = 'upload';
+
 function showSection(section) {
+    currentAppState = section;
     uploadSection.style.display = section === 'upload' ? 'flex' : 'none';
     loadingSection.style.display = section === 'loading' ? 'flex' : 'none';
     resultsSection.style.display = section === 'results' ? 'block' : 'none';
+    const blocked = document.getElementById('blockedSection');
+    if (blocked) blocked.style.display = 'none';
 }
 
 function updateLoadingStep(step, customMessage) {
@@ -735,11 +1127,14 @@ function initDownloadPdf() {
     }
 }
 
-function generatePDF() {
+async function generatePDF() {
     if (!lastAnalysisData) {
         showToast('No hay análisis disponible para descargar', 'warning');
         return;
     }
+
+    try {
+    await loadPDFLibraries(); // lazy-load: solo cuando el usuario pide el PDF
 
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
@@ -1147,13 +1542,29 @@ function generatePDF() {
     doc.save(`InmoLawyer_${arrendatario}_${fechaHoy}.pdf`);
 
     showToast('PDF descargado correctamente', 'success');
+
+    } catch (err) {
+        console.error('PDF generation failed:', err);
+        showToast('Error generando el PDF. Intenta de nuevo.', 'error');
+    }
 }
 
 // ===== PANEL ADMINISTRADOR =====
 
 let adminPanelVisible = false;
 let activeAdminTab = 'stats';
-let usersDataCache = []; // cache para filtrado client-side y export CSV
+let usersDataCache = []; // cache de la página actual para filtrado y export CSV
+
+// Paginación del registro de clientes
+const ADMIN_PAGE_SIZE = 50;
+let adminUsersPage = 0;
+let adminUsersTotalCount = 0;
+
+// Cache con TTL para evitar refetches innecesarios
+const ADMIN_CACHE = {
+    stats: null, statsAt: 0,
+    TTL: 5 * 60 * 1000 // 5 minutos
+};
 
 function toggleAdminPanel() {
     if (!isAdmin()) return;
@@ -1173,84 +1584,75 @@ function switchAdminTab(tab) {
     document.getElementById('adminTabStats').style.display = tab === 'stats' ? 'block' : 'none';
     document.getElementById('adminTabClientes').style.display = tab === 'clientes' ? 'block' : 'none';
     if (tab === 'clientes' && usersDataCache.length === 0) {
-        loadUsersRegistry();
+        loadUsersRegistry(0);
         loadTopPreguntas();
     }
 }
 
-async function loadAdminData() {
+async function loadAdminData(forceRefresh = false) {
     if (!isAdmin()) return;
 
-    try {
-        // 1. Total contratos
-        const { count: totalContratos } = await supabaseClient
-            .from('contratos')
-            .select('*', { count: 'exact', head: true });
-        document.getElementById('statTotalContratos').textContent = totalContratos ?? '—';
+    const now = Date.now();
+    if (!forceRefresh && ADMIN_CACHE.stats && (now - ADMIN_CACHE.statsAt) < ADMIN_CACHE.TTL) {
+        renderAdminStats(ADMIN_CACHE.stats);
+        return;
+    }
 
-        // 2. Contratos este mes
+    try {
         const firstOfMonth = new Date();
         firstOfMonth.setDate(1);
         firstOfMonth.setHours(0, 0, 0, 0);
-        const { count: contratosMes } = await supabaseClient
-            .from('contratos')
-            .select('*', { count: 'exact', head: true })
-            .gte('created_at', firstOfMonth.toISOString());
-        document.getElementById('statContratosMes').textContent = contratosMes ?? '—';
 
-        // 3. Total consultas chat
-        const { count: totalConsultas } = await supabaseClient
-            .from('consultas_chat')
-            .select('*', { count: 'exact', head: true });
-        document.getElementById('statConsultas').textContent = totalConsultas ?? '—';
+        // 5 queries en paralelo (antes eran 7 secuenciales, 4 full-table scans)
+        const [
+            { count: totalContratos },
+            { count: contratosMes },
+            { count: totalConsultas },
+            { data: contractData },
+            { data: recientes }
+        ] = await Promise.all([
+            supabaseClient.from('contratos').select('*', { count: 'exact', head: true }),
+            supabaseClient.from('contratos').select('*', { count: 'exact', head: true }).gte('created_at', firstOfMonth.toISOString()),
+            supabaseClient.from('consultas_chat').select('*', { count: 'exact', head: true }),
+            supabaseClient.from('contratos').select('user_email, score_riesgo, ciudad'),
+            supabaseClient.from('contratos').select('created_at, ciudad, score_riesgo, user_email, duracion_meses').order('created_at', { ascending: false }).limit(20)
+        ]);
 
-        // 4. Usuarios únicos por user_email
-        const { data: emailRows } = await supabaseClient
-            .from('contratos')
-            .select('user_email');
-        const uniqueUsers = new Set((emailRows || []).map(r => r.user_email).filter(Boolean)).size;
-        document.getElementById('statUsuarios').textContent = uniqueUsers || (emailRows?.length ? '1+' : '—');
+        // Usuarios únicos desde contractData (client-side, sin query extra)
+        const uniqueUsers = new Set((contractData || []).map(r => r.user_email).filter(Boolean)).size;
 
-        // 5. Distribución de riesgo
-        const { data: scoreRows } = await supabaseClient
-            .from('contratos')
-            .select('score_riesgo');
-        if (scoreRows && scoreRows.length > 0) {
-            const high = scoreRows.filter(c => (c.score_riesgo || 0) >= 51).length;
-            const med  = scoreRows.filter(c => (c.score_riesgo || 0) >= 26 && (c.score_riesgo || 0) < 51).length;
-            const low  = scoreRows.filter(c => (c.score_riesgo || 0) < 26).length;
-            document.getElementById('riskDistribution').innerHTML = `
+        // Distribución de riesgo
+        let riskHTML;
+        if (contractData && contractData.length > 0) {
+            const high = contractData.filter(c => (c.score_riesgo || 0) >= 51).length;
+            const med  = contractData.filter(c => (c.score_riesgo || 0) >= 26 && (c.score_riesgo || 0) < 51).length;
+            const low  = contractData.filter(c => (c.score_riesgo || 0) < 26).length;
+            riskHTML = `
                 <div class="risk-bar"><span class="risk-label danger">🔴 Alto (&ge;51)</span><strong class="risk-count">${high}</strong></div>
                 <div class="risk-bar"><span class="risk-label warning">🟡 Medio (26-50)</span><strong class="risk-count">${med}</strong></div>
                 <div class="risk-bar"><span class="risk-label success">🟢 Bajo (&lt;26)</span><strong class="risk-count">${low}</strong></div>
             `;
         } else {
-            document.getElementById('riskDistribution').innerHTML = '<p class="admin-empty">Sin datos aún</p>';
+            riskHTML = '<p class="admin-empty">Sin datos aún</p>';
         }
 
-        // 6. Top ciudades
-        const { data: ciudadRows } = await supabaseClient
-            .from('contratos')
-            .select('ciudad');
-        if (ciudadRows && ciudadRows.length > 0) {
+        // Top ciudades
+        let ciudadesHTML;
+        if (contractData && contractData.length > 0) {
             const freq = {};
-            ciudadRows.forEach(r => { if (r.ciudad) freq[r.ciudad] = (freq[r.ciudad] || 0) + 1; });
+            contractData.forEach(r => { if (r.ciudad) freq[r.ciudad] = (freq[r.ciudad] || 0) + 1; });
             const sorted = Object.entries(freq).sort((a, b) => b[1] - a[1]).slice(0, 5);
-            document.getElementById('topCiudades').innerHTML = sorted
+            ciudadesHTML = sorted
                 .map(([city, n]) => `<div class="ciudad-row"><span>${city}</span><strong>${n}</strong></div>`)
                 .join('') || '<p class="admin-empty">Sin datos aún</p>';
         } else {
-            document.getElementById('topCiudades').innerHTML = '<p class="admin-empty">Sin datos aún</p>';
+            ciudadesHTML = '<p class="admin-empty">Sin datos aún</p>';
         }
 
-        // 7. Tabla contratos recientes
-        const { data: recientes } = await supabaseClient
-            .from('contratos')
-            .select('created_at, ciudad, score_riesgo, user_email, duracion_meses')
-            .order('created_at', { ascending: false })
-            .limit(20);
+        // Tabla contratos recientes
+        let recientesHTML;
         if (recientes && recientes.length > 0) {
-            document.getElementById('adminContractosBody').innerHTML = recientes.map(c => {
+            recientesHTML = recientes.map(c => {
                 const score = c.score_riesgo ?? null;
                 const scoreClass = score === null ? '' : score >= 51 ? 'high' : score >= 26 ? 'med' : 'low';
                 return `<tr>
@@ -1262,14 +1664,20 @@ async function loadAdminData() {
                 </tr>`;
             }).join('');
         } else {
-            document.getElementById('adminContractosBody').innerHTML =
-                '<tr><td colspan="5" style="text-align:center;color:#64748b;padding:20px">Sin contratos aún</td></tr>';
+            recientesHTML = '<tr><td colspan="5" style="text-align:center;color:#64748b;padding:20px">Sin contratos aún</td></tr>';
         }
+
+        // Guardar en caché
+        ADMIN_CACHE.stats = { totalContratos, contratosMes, totalConsultas, uniqueUsers, riskHTML, ciudadesHTML, recientesHTML };
+        ADMIN_CACHE.statsAt = Date.now();
+
+        renderAdminStats(ADMIN_CACHE.stats);
 
         // Si el tab de clientes está activo, recargar también
         if (activeAdminTab === 'clientes') {
+            adminUsersPage = 0;
             usersDataCache = [];
-            loadUsersRegistry();
+            loadUsersRegistry(0);
             loadTopPreguntas();
         }
 
@@ -1279,29 +1687,49 @@ async function loadAdminData() {
     }
 }
 
+function renderAdminStats(s) {
+    document.getElementById('statTotalContratos').textContent = s.totalContratos ?? '—';
+    document.getElementById('statContratosMes').textContent = s.contratosMes ?? '—';
+    document.getElementById('statConsultas').textContent = s.totalConsultas ?? '—';
+    document.getElementById('statUsuarios').textContent = s.uniqueUsers || '—';
+    document.getElementById('riskDistribution').innerHTML = s.riskHTML;
+    document.getElementById('topCiudades').innerHTML = s.ciudadesHTML;
+    document.getElementById('adminContractosBody').innerHTML = s.recientesHTML;
+}
+
 // ===== CLIENTES: Registro de usuarios =====
 
-async function loadUsersRegistry() {
+async function loadUsersRegistry(page = 0) {
     if (!isAdmin()) return;
+    adminUsersPage = page;
     const tbody = document.getElementById('usersTableBody');
     if (tbody) tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#64748b;padding:20px"><i class="fas fa-spinner fa-spin"></i> Cargando clientes...</td></tr>';
 
     try {
-        // 1. Todos los perfiles
-        const { data: profiles } = await supabaseClient
+        const from = page * ADMIN_PAGE_SIZE;
+        const to   = from + ADMIN_PAGE_SIZE - 1;
+
+        // Paginación server-side: solo trae los usuarios de esta página
+        const { data: profiles, count: totalCount } = await supabaseClient
             .from('user_profiles')
-            .select('id, email, nombre, fecha_registro')
-            .order('fecha_registro', { ascending: false });
+            .select('id, email, nombre, fecha_registro, plan, estudios_restantes, alias_detectado', { count: 'exact' })
+            .order('fecha_registro', { ascending: false })
+            .range(from, to);
 
-        // 2. Contratos por usuario
-        const { data: contratos } = await supabaseClient
-            .from('contratos')
-            .select('user_id, created_at');
+        if (totalCount !== null) adminUsersTotalCount = totalCount;
 
-        // 3. Consultas por usuario
-        const { data: chats } = await supabaseClient
-            .from('consultas_chat')
-            .select('user_id, created_at');
+        if (!profiles || profiles.length === 0) {
+            if (tbody) tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#64748b;padding:20px">No hay clientes registrados</td></tr>';
+            updatePaginationUI();
+            return;
+        }
+
+        // Traer contratos y chats SOLO para los usuarios de esta página (filtrado por ids)
+        const userIds = profiles.map(p => p.id);
+        const [{ data: contratos }, { data: chats }] = await Promise.all([
+            supabaseClient.from('contratos').select('user_id, created_at').in('user_id', userIds),
+            supabaseClient.from('consultas_chat').select('user_id, created_at').in('user_id', userIds)
+        ]);
 
         const now = new Date();
         const hace30 = new Date(now - 30 * 24 * 60 * 60 * 1000);
@@ -1331,11 +1759,10 @@ async function loadUsersRegistry() {
                 chatsByUser[c.user_id].lastAt = d;
         });
 
-        // Construir array enriquecido
-        usersDataCache = (profiles || []).map(u => {
+        // Construir array enriquecido (solo los perfiles de esta página)
+        usersDataCache = profiles.map(u => {
             const cts = contratosByUser[u.id] || { total: 0, esteMes: 0, lastAt: null };
             const chs = chatsByUser[u.id]     || { total: 0, lastAt: null };
-
             const lastAct = [cts.lastAt, chs.lastAt].filter(Boolean).sort((a,b) => b-a)[0] || null;
 
             let tipo;
@@ -1356,17 +1783,32 @@ async function loadUsersRegistry() {
                 ultima_actividad: lastAct,
                 contratos: cts.total,
                 consultas: chs.total,
-                tipo
+                tipo,
+                plan: u.plan ?? 'freemium',
+                estudios_restantes: u.estudios_restantes ?? 5,
+                alias_detectado: u.alias_detectado ?? false
             };
         });
 
         renderUsersTable(usersDataCache);
+        updatePaginationUI();
 
     } catch (err) {
         console.error('Error cargando clientes:', err);
         const tbody = document.getElementById('usersTableBody');
         if (tbody) tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:#dc2626;padding:20px">Error: ${err.message}</td></tr>`;
     }
+}
+
+function updatePaginationUI() {
+    const totalPages = Math.ceil(adminUsersTotalCount / ADMIN_PAGE_SIZE);
+    const pageInfo = document.getElementById('adminPageInfo');
+    const btnPrev  = document.getElementById('btnPrevPage');
+    const btnNext  = document.getElementById('btnNextPage');
+    if (!pageInfo) return;
+    pageInfo.textContent = `Página ${adminUsersPage + 1} de ${totalPages || 1} (${adminUsersTotalCount} clientes)`;
+    if (btnPrev) btnPrev.disabled = adminUsersPage === 0;
+    if (btnNext) btnNext.disabled = (adminUsersPage + 1) >= totalPages;
 }
 
 function renderUsersTable(users) {
@@ -1389,6 +1831,7 @@ function renderUsersTable(users) {
 
     tbody.innerHTML = users.map(u => {
         const nuevoTag = u.es_nuevo ? '<span class="badge-nuevo">NUEVO</span>' : '';
+        const aliasTag = u.alias_detectado ? '<span class="badge-alias" title="Registrado con email +alias">⚠️ alias</span>' : '';
         const lastActStr = u.ultima_actividad
             ? new Date(u.ultima_actividad).toLocaleDateString('es-CO')
             : '—';
@@ -1397,20 +1840,30 @@ function renderUsersTable(users) {
         const verBtn = u.consultas > 0
             ? `<button class="btn-ver-preguntas" onclick="showUserQuestions('${u.id}','${(u.nombre || u.email).replace(/'/g,"\\'")}')"><i class="fas fa-eye"></i></button>`
             : '';
+        const estudiosTag = u.estudios_restantes !== undefined
+            ? `<span class="badge-estudios">${u.estudios_restantes}</span>`
+            : '';
         return `<tr>
             <td>${nombre}</td>
-            <td class="email-cell">${u.email}</td>
+            <td class="email-cell">${u.email} ${aliasTag}</td>
             <td>${tipoBadge[u.tipo] || ''}</td>
             <td>${regStr} ${nuevoTag}</td>
             <td>${lastActStr}</td>
             <td class="num-cell">${u.contratos}</td>
             <td class="num-cell">${u.consultas}</td>
+            <td class="num-cell">${estudiosTag}</td>
             <td>${verBtn}</td>
         </tr>`;
     }).join('');
 }
 
+let _filterUsersTimeout;
 function filterUsers() {
+    clearTimeout(_filterUsersTimeout);
+    _filterUsersTimeout = setTimeout(_applyUsersFilter, 300);
+}
+
+function _applyUsersFilter() {
     const search = (document.getElementById('userSearch')?.value || '').toLowerCase();
     const activity = document.getElementById('activityFilter')?.value || '';
     const onlyNew = document.getElementById('newFilter')?.value === 'new';
@@ -1539,4 +1992,90 @@ async function showUserQuestions(userId, userName) {
 function closeUserQuestionsModal(event) {
     if (event && event.target !== document.getElementById('userQuestionsModal')) return;
     document.getElementById('userQuestionsModal').style.display = 'none';
+}
+
+// ===== MIS CONTRATOS: Dashboard de historial =====
+
+function showAppTab(tab) {
+    document.querySelectorAll('.app-nav-btn').forEach(b =>
+        b.classList.toggle('active', b.dataset.tab === tab));
+    const isAnalizar = tab === 'analizar';
+    uploadSection.style.display  = isAnalizar && currentAppState === 'upload'   ? 'flex'   : 'none';
+    resultsSection.style.display = isAnalizar && currentAppState === 'results'  ? 'block'  : 'none';
+    loadingSection.style.display = 'none';
+    const blocked = document.getElementById('blockedSection');
+    if (blocked) blocked.style.display = isAnalizar && currentAppState === 'blocked' ? 'flex' : 'none';
+    document.getElementById('historialSection').style.display = isAnalizar ? 'none' : 'block';
+    if (!isAnalizar) loadMisContratos();
+}
+
+async function loadMisContratos() {
+    if (!currentUser) return;
+    const tbody   = document.getElementById('historialTbody');
+    const emptyEl = document.getElementById('historialEmpty');
+    const tableEl = document.getElementById('historialTable');
+    const countEl = document.getElementById('historialCount');
+
+    tableEl.style.display = 'table';
+    emptyEl.style.display = 'none';
+    tbody.innerHTML = '<tr><td colspan="6" class="historial-loading"><i class="fas fa-spinner fa-spin"></i> Cargando...</td></tr>';
+
+    const { data, error } = await supabaseClient
+        .from('contratos')
+        .select('id, created_at, score_riesgo, ciudad, arrendador_nombre, arrendatario_nombre, analisis, alertas, incrementos, fechas_importantes, deudores_solidarios, canon, duracion_meses, fecha_inicio, arrendador_doc, arrendatario_doc, direccion')
+        .eq('user_id', currentUser.id)
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+    if (error || !data?.length) {
+        tableEl.style.display = 'none';
+        emptyEl.style.display = 'flex';
+        if (countEl) countEl.textContent = '';
+        return;
+    }
+
+    if (countEl) countEl.textContent = `${data.length} análisis`;
+
+    tbody.innerHTML = data.map(c => {
+        const fecha = new Date(c.created_at).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' });
+        const score = c.score_riesgo ?? '—';
+        const scoreClass = typeof score === 'number'
+            ? (score >= 70 ? 'score-badge-low' : score >= 40 ? 'score-badge-med' : 'score-badge-high')
+            : 'score-badge-med';
+        const riesgoLabel = typeof score === 'number'
+            ? (score >= 70 ? 'Bajo' : score >= 40 ? 'Medio' : 'Alto')
+            : '—';
+        const contractJson = JSON.stringify(c).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+        return `<tr>
+            <td>${fecha}</td>
+            <td>${c.arrendatario_nombre || '—'}</td>
+            <td>${c.arrendador_nombre || '—'}</td>
+            <td>${c.ciudad || '—'}</td>
+            <td><span class="score-badge ${scoreClass}">${score} · ${riesgoLabel}</span></td>
+            <td><button class="btn-dl-pdf" onclick="downloadHistorialPDF(this)">
+                <i class="fas fa-file-pdf"></i> PDF
+            </button></td>
+        </tr>`;
+    }).join('');
+
+    // Guardar datos en dataset para acceso limpio desde el botón
+    data.forEach((c, i) => {
+        const btn = tbody.querySelectorAll('.btn-dl-pdf')[i];
+        if (btn) btn._contractData = c;
+    });
+}
+
+async function downloadHistorialPDF(btn) {
+    const contractData = btn._contractData;
+    if (!contractData) return;
+    lastAnalysisData = { ...contractData, ...(contractData.analisis || {}) };
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    try {
+        await generatePDF();
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    }
 }
