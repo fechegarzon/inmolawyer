@@ -76,19 +76,16 @@ async function loadCurrentUserProfile() {
 
 // ===== Inicializar auth =====
 async function initAuth() {
-    const { data: { session } } = await supabaseClient.auth.getSession();
-    if (session) {
-        currentUser = session.user;
-        await showApp();
-    } else {
-        showAuth();
-    }
+    let recoveryDetected = false;
 
+    // Register listener FIRST to catch PASSWORD_RECOVERY event
     supabaseClient.auth.onAuthStateChange(async (event, session) => {
         if (event === 'PASSWORD_RECOVERY') {
+            recoveryDetected = true;
             showResetPasswordForm();
             return;
         }
+        if (recoveryDetected && event === 'SIGNED_IN') return; // Ignore SIGNED_IN during recovery
         currentUser = session?.user ?? null;
         if (session) {
             await showApp();
@@ -98,6 +95,17 @@ async function initAuth() {
             showAuth();
         }
     });
+
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    // Only show app/auth if recovery was NOT detected by the listener above
+    if (!recoveryDetected) {
+        if (session) {
+            currentUser = session.user;
+            await showApp();
+        } else {
+            showAuth();
+        }
+    }
 }
 
 // ===== Mostrar pantalla de auth =====
