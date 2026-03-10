@@ -438,7 +438,7 @@ async function handleForgotPassword() {
 
     try {
         const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
-            redirectTo: 'https://inmo.tools/inmolawyer/app.html'
+            redirectTo: 'https://inmo.tools/inmolawyer/app'
         });
         if (error) throw error;
         msgEl.innerHTML = '✅ <strong>Enlace enviado.</strong> Revisá tu email (incluída la carpeta de spam) y hacé clic en el enlace para restablecer tu contraseña.';
