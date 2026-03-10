@@ -85,7 +85,8 @@ async function initAuth() {
             showResetPasswordForm();
             return;
         }
-        if (recoveryDetected && event === 'SIGNED_IN') return; // Ignore SIGNED_IN during recovery
+        // Skip any event that would override the recovery form
+        if (recoveryDetected) return;
         currentUser = session?.user ?? null;
         if (session) {
             await showApp();
@@ -97,7 +98,9 @@ async function initAuth() {
     });
 
     const { data: { session } } = await supabaseClient.auth.getSession();
-    // Only show app/auth if recovery was NOT detected by the listener above
+    // Wait a tick to let onAuthStateChange fire PASSWORD_RECOVERY if applicable
+    await new Promise(r => setTimeout(r, 100));
+    // Only show app/auth if recovery was NOT detected by the listener
     if (!recoveryDetected) {
         if (session) {
             currentUser = session.user;
