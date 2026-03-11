@@ -89,17 +89,18 @@ async function loadCurrentUserProfile() {
 
 // ===== Inicializar auth =====
 async function initAuth() {
-    let recoveryDetected = false;
+    // Detect recovery from URL hash BEFORE any Supabase calls — most reliable method
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    const isRecovery = hashParams.get('type') === 'recovery';
 
-    // Register listener FIRST to catch PASSWORD_RECOVERY event
+    if (isRecovery) {
+        // Show reset form immediately, then let Supabase process the token
+        showResetPasswordForm();
+        supabaseClient.auth.onAuthStateChange(() => {});
+        return;
+    }
+
     supabaseClient.auth.onAuthStateChange(async (event, session) => {
-        if (event === 'PASSWORD_RECOVERY') {
-            recoveryDetected = true;
-            showResetPasswordForm();
-            return;
-        }
-        // Skip any event that would override the recovery form
-        if (recoveryDetected) return;
         currentUser = session?.user ?? null;
         if (session) {
             await showApp();
@@ -111,16 +112,11 @@ async function initAuth() {
     });
 
     const { data: { session } } = await supabaseClient.auth.getSession();
-    // Wait a tick to let onAuthStateChange fire PASSWORD_RECOVERY if applicable
-    await new Promise(r => setTimeout(r, 100));
-    // Only show app/auth if recovery was NOT detected by the listener
-    if (!recoveryDetected) {
-        if (session) {
-            currentUser = session.user;
-            await showApp();
-        } else {
-            showAuth();
-        }
+    if (session) {
+        currentUser = session.user;
+        await showApp();
+    } else {
+        showAuth();
     }
 }
 
