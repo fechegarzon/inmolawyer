@@ -525,16 +525,13 @@ async function handleNewPassword() {
     try {
         const { error } = await supabaseClient.auth.updateUser({ password: newPwd });
         if (error) throw error;
-        msgEl.innerHTML = '✅ <strong>Contraseña actualizada.</strong> Ya podés iniciar sesión.';
+        msgEl.innerHTML = '✅ <strong>Contraseña actualizada.</strong> Redirigiendo al login...';
         msgEl.style.color = '#16a34a';
         msgEl.style.display = 'block';
         btn.style.display = 'none';
-        // Volver al login después de 2s
+        // Reload page without hash so initAuth() runs normal auth flow
         setTimeout(() => {
-            document.getElementById('resetPasswordForm').style.display = 'none';
-            document.getElementById('loginForm').style.display = 'flex';
-            const tabs = document.querySelector('.auth-tabs');
-            if (tabs) tabs.style.display = 'flex';
+            window.location.href = window.location.pathname;
         }, 2500);
     } catch (err) {
         msgEl.textContent = err.message || 'Error al cambiar la contraseña. Intenta de nuevo.';
