@@ -1,0 +1,394 @@
+{
+  "name": "InmoLawyer - WhatsApp Bot",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "whatsapp-incoming",
+        "options": {
+          "rawBody": true
+        }
+      },
+      "id": "wa-webhook-incoming",
+      "name": "WhatsApp Incoming",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 400],
+      "webhookId": "whatsapp-incoming"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Filter & Parse - Kapso WhatsApp Cloud API webhook payload\nconst items = $input.all();\nconst body = items[0].json.body || items[0].json;\n\n// Kapso v2 payload structure:\n// { message: { id, type, text: { body }, kapso: { direction, content, has_media } },\n//   conversation: { id, phone_number }, is_new_conversation, phone_number_id }\n\nconst msg = body.message;\nif (!msg) return [];\n\n// Ignore outbound messages (sent by us)\nif (msg.kapso?.direction !== 'inbound') return [];\n\nconst phone = (body.conversation?.phone_number || '').replace('+', '');\nif (!phone) return [];\n\nconst phoneNumberId = body.phone_number_id || '';\nconst isNewConversation = body.is_new_conversation === true;\n\n// Determine message type and extract content\nconst msgType = msg.type || 'text';\nlet messageType = 'text';\nlet text = '';\nlet mediaInfo = null;\n\nif (msgType === 'text') {\n  messageType = 'text';\n  text = msg.text?.body || msg.kapso?.content || '';\n} else if (msgType === 'document') {\n  messageType = 'document';\n  text = msg.document?.caption || '';\n  mediaInfo = {\n    mediaId: msg.document?.id || msg.id,\n    mimetype: msg.document?.mime_type || 'application/pdf',\n    fileName: msg.document?.filename || 'contrato_whatsapp',\n    sha256: msg.document?.sha256\n  };\n} else if (msgType === 'image') {\n  messageType = 'image';\n  text = msg.image?.caption || '';\n  mediaInfo = {\n    mediaId: msg.image?.id || msg.id,\n    mimetype: msg.image?.mime_type || 'image/jpeg',\n    sha256: msg.image?.sha256\n  };\n} else {\n  // Unsupported message type (sticker, audio, etc.) — skip\n  return [];\n}\n\nreturn [{\n  json: {\n    phone,\n    phoneNumberId,\n    messageType,\n    text,\n    mediaInfo,\n    isNewConversation,\n    messageId: msg.id,\n    conversationId: body.conversation?.id,\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "wa-filter-parse",
+      "name": "Filter & Parse",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 400]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.messageType }}",
+                    "rightValue": "text",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "text"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.messageType }}",
+                    "rightValue": "document",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "document"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.messageType }}",
+                    "rightValue": "image",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "image"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "wa-route-by-type",
+      "name": "Route by Type",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [720, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get/Create Session - Query whatsapp_sessions table\nconst phone = $input.first().json.phone;\n\nconst SUPABASE_URL = 'https://oqipslfzbeioakfllohm.supabase.co';\nconst SUPABASE_KEY = $env.SUPABASE_SERVICE_KEY || $env.SUPABASE_ANON_KEY || '';\n\nlet session = null;\n\ntry {\n  const response = await fetch(\n    `${SUPABASE_URL}/rest/v1/whatsapp_sessions?phone_number=eq.${phone}&select=*`,\n    {\n      headers: {\n        'apikey': SUPABASE_KEY,\n        'Authorization': `Bearer ${SUPABASE_KEY}`,\n        'Content-Type': 'application/json'\n      }\n    }\n  );\n  const data = await response.json();\n  if (data && data.length > 0) {\n    session = data[0];\n  }\n} catch (e) {\n  // Session lookup failed, will create new\n}\n\n// Create session if not exists\nif (!session) {\n  try {\n    const createResponse = await fetch(\n      `${SUPABASE_URL}/rest/v1/whatsapp_sessions`,\n      {\n        method: 'POST',\n        headers: {\n          'apikey': SUPABASE_KEY,\n          'Authorization': `Bearer ${SUPABASE_KEY}`,\n          'Content-Type': 'application/json',\n          'Prefer': 'return=representation'\n        },\n        body: JSON.stringify({\n          phone_number: phone,\n          state: 'IDLE',\n          message_count_today: 0,\n          created_at: new Date().toISOString(),\n          last_message_at: new Date().toISOString()\n        })\n      }\n    );\n    const created = await createResponse.json();\n    session = Array.isArray(created) ? created[0] : created;\n    session._isNew = true;\n  } catch (e) {\n    session = {\n      phone_number: phone,\n      state: 'IDLE',\n      message_count_today: 0,\n      _isNew: true\n    };\n  }\n}\n\nreturn [{\n  json: {\n    ...$input.first().json,\n    session: session,\n    isNewUser: session._isNew === true\n  }\n}];"
+      },
+      "id": "wa-get-create-session",
+      "name": "Get/Create Session",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [960, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Welcome Message - Send to first-time users via Kapso API\nconst input = $input.first().json;\nconst phone = input.phone;\nconst phoneNumberId = input.phoneNumberId;\n\nconst KAPSO_API_KEY = $env.KAPSO_API_KEY || '';\n\nconst welcomeText = '*Bienvenido a InmoLawyer* \\u2696\\uFE0F\\n\\nSoy tu asistente legal especializado en *arrendamiento de vivienda urbana* en Colombia.\\n\\n*\\u00BFQu\\u00E9 puedo hacer por ti?*\\n\\n1\\uFE0F\\u20E3 *Consultas legales*: Escr\\u00EDbeme cualquier pregunta sobre tu contrato de arriendo y te responder\\u00E9 bas\\u00E1ndome en la Ley 820 de 2003.\\n\\n2\\uFE0F\\u20E3 *Analizar contratos*: Env\\u00EDame una foto o documento PDF de tu contrato y lo analizar\\u00E9 para detectar cl\\u00E1usulas abusivas.\\n\\n*Ejemplos de preguntas:*\\n\\u2022 \\\"Mi arrendador me pide dep\\u00F3sito en efectivo, \\u00BFes legal?\\\"\\n\\u2022 \\\"\\u00BFCu\\u00E1nto me pueden subir el arriendo este a\\u00F1o?\\\"\\n\\u2022 \\\"Quiero terminar mi contrato anticipadamente\\\"\\n\\n\\u00A1Escr\\u00EDbeme tu consulta!';\n\ntry {\n  await fetch(\n    `https://api.kapso.ai/meta/whatsapp/v1/${phoneNumberId}/messages`,\n    {\n      method: 'POST',\n      headers: {\n        'Content-Type': 'application/json',\n        'X-API-Key': KAPSO_API_KEY\n      },\n      body: JSON.stringify({\n        messaging_product: 'whatsapp',\n        to: phone,\n        type: 'text',\n        text: { body: welcomeText }\n      })\n    }\n  );\n} catch (e) {\n  // Welcome message send failed, continue anyway\n}\n\nreturn [{ json: { ...input, welcomeSent: true } }];"
+      },
+      "id": "wa-welcome-message",
+      "name": "Welcome Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1200, 100]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Prepare Chat Request - Format for legal consultation\nconst input = $input.first().json;\nconst session = input.session;\nconst text = input.text;\nconst phone = input.phone;\n\nlet pregunta = text;\nlet contratoId = null;\nlet contexto = 'general';\n\n// If session is CHATTING and has an active contract, include contract context\nif (session.state === 'CHATTING' && session.active_contrato_id) {\n  contratoId = session.active_contrato_id;\n  contexto = 'contrato';\n  pregunta = text;\n}\n\n// Check for special commands\nconst textLower = text.toLowerCase().trim();\nif (textLower === 'menu' || textLower === 'men\\u00FA' || textLower === 'inicio' || textLower === 'ayuda') {\n  return [{\n    json: {\n      ...input,\n      isSpecialCommand: true,\n      commandType: 'menu'\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    ...input,\n    isSpecialCommand: false,\n    requestBody: {\n      pregunta: pregunta,\n      contratoId: contratoId,\n      contexto: contexto,\n      phone: phone\n    }\n  }\n}];"
+      },
+      "id": "wa-prepare-chat-request",
+      "name": "Prepare Chat Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1200, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://oqipslfzbeioakfllohm.supabase.co/functions/v1/consulta-contrato",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_ANON_KEY }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.requestBody) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "wa-legal-chat-api",
+      "name": "Legal Chat API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1440, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Download Media - Get document/image via Kapso / Meta Cloud API\nconst input = $input.first().json;\nconst phoneNumberId = input.phoneNumberId;\nconst mediaId = input.mediaInfo?.mediaId;\n\nconst KAPSO_API_KEY = $env.KAPSO_API_KEY || '';\n\nlet base64Data = null;\nlet mimetype = input.mediaInfo?.mimetype || 'application/octet-stream';\nlet fileName = input.mediaInfo?.fileName || 'contrato_whatsapp';\n\nif (!mediaId) {\n  return [{\n    json: {\n      ...input,\n      mediaError: true,\n      errorMessage: 'No se encontr\\u00F3 el archivo en el mensaje. Por favor env\\u00EDalo de nuevo.'\n    }\n  }];\n}\n\ntry {\n  // Step 1: Get media URL from Meta via Kapso\n  const urlResponse = await fetch(\n    `https://api.kapso.ai/meta/whatsapp/v1/${phoneNumberId}/media/${mediaId}`,\n    {\n      headers: {\n        'X-API-Key': KAPSO_API_KEY\n      }\n    }\n  );\n  const urlData = await urlResponse.json();\n  const mediaUrl = urlData.url;\n\n  if (!mediaUrl) {\n    throw new Error('No media URL returned');\n  }\n\n  // Step 2: Download the actual file\n  const fileResponse = await fetch(mediaUrl, {\n    headers: {\n      'X-API-Key': KAPSO_API_KEY\n    }\n  });\n  const arrayBuffer = await fileResponse.arrayBuffer();\n  const buffer = Buffer.from(arrayBuffer);\n  base64Data = buffer.toString('base64');\n  mimetype = fileResponse.headers.get('content-type') || mimetype;\n} catch (e) {\n  return [{\n    json: {\n      ...input,\n      mediaError: true,\n      errorMessage: 'No se pudo descargar el archivo. Por favor int\\u00E9ntalo de nuevo.'\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    ...input,\n    mediaError: false,\n    base64Data: base64Data,\n    mimetype: mimetype,\n    fileName: fileName\n  }\n}];"
+      },
+      "id": "wa-download-media",
+      "name": "Download Media",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [960, 600]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://oqipslfzbeioakfllohm.supabase.co/functions/v1/analizar-contrato",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_ANON_KEY }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ archivo: $json.base64Data, mimetype: $json.mimetype, fileName: $json.fileName, phone: $json.phone, source: 'whatsapp' }) }}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "wa-analyze-contract-api",
+      "name": "Analyze Contract API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1200, 600]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Format WhatsApp Response - Convert AI response for WhatsApp\nconst input = $input.first().json;\n\nlet responseText = '';\n\n// Handle different response shapes\nif (input.respuesta) {\n  responseText = input.respuesta;\n} else if (input.response) {\n  responseText = input.response;\n} else if (input.text) {\n  responseText = input.text;\n} else if (input.analisis) {\n  // Contract analysis response\n  const analisis = typeof input.analisis === 'string' ? JSON.parse(input.analisis) : input.analisis;\n  const score = analisis.score_riesgo || input.scoreRiesgo || input.score_riesgo || 0;\n\n  let emoji = '\\u2705';\n  if (score > 75) emoji = '\\uD83D\\uDED1';\n  else if (score > 50) emoji = '\\u26A0\\uFE0F';\n  else if (score > 25) emoji = '\\uD83D\\uDFE1';\n\n  responseText = `${emoji} *An\\u00E1lisis de tu Contrato*\\n\\n`;\n  responseText += `*Nivel de riesgo:* ${score}/100\\n\\n`;\n\n  if (analisis.resumen) {\n    responseText += `*Resumen:* ${analisis.resumen}\\n\\n`;\n  }\n\n  if (analisis.alertas && analisis.alertas.length > 0) {\n    responseText += `*Alertas encontradas:*\\n\\n`;\n    for (const alerta of analisis.alertas) {\n      let alertaEmoji = '\\u2139\\uFE0F';\n      if (alerta.tipo === 'danger') alertaEmoji = '\\uD83D\\uDED1';\n      else if (alerta.tipo === 'warning') alertaEmoji = '\\u26A0\\uFE0F';\n      else if (alerta.tipo === 'success') alertaEmoji = '\\u2705';\n\n      responseText += `${alertaEmoji} *${alerta.titulo}*\\n`;\n      responseText += `${alerta.descripcion}\\n`;\n      if (alerta.referencia_legal) {\n        responseText += `_Ref: ${alerta.referencia_legal}_\\n`;\n      }\n      responseText += `\\n`;\n    }\n  }\n\n  if (analisis.recomendaciones && analisis.recomendaciones.length > 0) {\n    responseText += `*Recomendaciones:*\\n`;\n    for (const rec of analisis.recomendaciones) {\n      responseText += `\\u2022 ${rec}\\n`;\n    }\n  }\n} else if (input.mediaError) {\n  responseText = input.errorMessage || 'No se pudo procesar el archivo enviado.';\n} else {\n  responseText = 'Lo siento, no pude procesar tu solicitud. Por favor int\\u00E9ntalo de nuevo.';\n}\n\n// Convert markdown headers to WhatsApp bold\nresponseText = responseText.replace(/^###\\s*(.+)$/gm, '*$1*');\nresponseText = responseText.replace(/^##\\s*(.+)$/gm, '*$1*');\nresponseText = responseText.replace(/^#\\s*(.+)$/gm, '*$1*');\n\n// Convert markdown bold **text** to WhatsApp bold *text*\nresponseText = responseText.replace(/\\*\\*(.+?)\\*\\*/g, '*$1*');\n\n// Convert markdown links [text](url) to just text (url)\nresponseText = responseText.replace(/\\[([^\\]]+)\\]\\(([^)]+)\\)/g, '$1 ($2)');\n\n// Truncate to 4096 chars if needed (WhatsApp limit)\nif (responseText.length > 4096) {\n  responseText = responseText.substring(0, 4050) + '\\n\\n_... Respuesta truncada. Escribe \"m\\u00E1s\" para continuar._';\n}\n\n// Get phone and phoneNumberId from upstream nodes\nconst phone = input.phone || $('Filter & Parse').first().json.phone;\nconst phoneNumberId = input.phoneNumberId || $('Filter & Parse').first().json.phoneNumberId;\n\nreturn [{\n  json: {\n    phone: phone,\n    phoneNumberId: phoneNumberId,\n    formattedResponse: responseText,\n    originalInput: input\n  }\n}];"
+      },
+      "id": "wa-format-response",
+      "name": "Format WhatsApp Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1680, 400]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.kapso.ai/meta/whatsapp/v1/{{ $json.phoneNumberId }}/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "X-API-Key",
+              "value": "={{ $env.KAPSO_API_KEY }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ messaging_product: 'whatsapp', to: $json.phone, type: 'text', text: { body: $json.formattedResponse } }) }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "wa-send-reply",
+      "name": "Send WhatsApp Reply",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1920, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Update Session - Update whatsapp_sessions table\nconst input = $input.first().json;\nconst phone = input.phone || input.originalInput?.phone;\n\nconst SUPABASE_URL = 'https://oqipslfzbeioakfllohm.supabase.co';\nconst SUPABASE_KEY = $env.SUPABASE_SERVICE_KEY || $env.SUPABASE_ANON_KEY || '';\n\n// Determine new state based on what happened\nlet newState = 'CHATTING';\nconst originalInput = input.originalInput || {};\nif (originalInput.analisis || originalInput.contratoId) {\n  newState = 'CHATTING';\n}\n\ntry {\n  await fetch(\n    `${SUPABASE_URL}/rest/v1/whatsapp_sessions?phone_number=eq.${phone}`,\n    {\n      method: 'PATCH',\n      headers: {\n        'apikey': SUPABASE_KEY,\n        'Authorization': `Bearer ${SUPABASE_KEY}`,\n        'Content-Type': 'application/json',\n        'Prefer': 'return=minimal'\n      },\n      body: JSON.stringify({\n        state: newState,\n        last_message_at: new Date().toISOString(),\n        message_count_today: (originalInput.session?.message_count_today || 0) + 1,\n        active_contrato_id: originalInput.analisis?.contratoId || originalInput.session?.active_contrato_id || null\n      })\n    }\n  );\n} catch (e) {\n  // Session update failed, non-critical\n}\n\nreturn [{ json: { success: true, phone: phone, state: newState } }];"
+      },
+      "id": "wa-update-session",
+      "name": "Update Session",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2160, 400]
+    }
+  ],
+  "connections": {
+    "WhatsApp Incoming": {
+      "main": [
+        [
+          {
+            "node": "Filter & Parse",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter & Parse": {
+      "main": [
+        [
+          {
+            "node": "Route by Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Type": {
+      "main": [
+        [
+          {
+            "node": "Get/Create Session",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Download Media",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Download Media",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get/Create Session": {
+      "main": [
+        [
+          {
+            "node": "Welcome Message",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Prepare Chat Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Chat Request": {
+      "main": [
+        [
+          {
+            "node": "Legal Chat API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Legal Chat API": {
+      "main": [
+        [
+          {
+            "node": "Format WhatsApp Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Media": {
+      "main": [
+        [
+          {
+            "node": "Analyze Contract API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze Contract API": {
+      "main": [
+        [
+          {
+            "node": "Format WhatsApp Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format WhatsApp Response": {
+      "main": [
+        [
+          {
+            "node": "Send WhatsApp Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send WhatsApp Reply": {
+      "main": [
+        [
+          {
+            "node": "Update Session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

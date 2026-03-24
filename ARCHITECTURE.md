@@ -33,6 +33,28 @@ InmoLawyer is a static frontend backed by Supabase and n8n:
 3. Wompi redirects back to `app.html`.
 4. The frontend reloads the user profile and confirms credits were actually applied before showing payment success.
 
+### WhatsApp Bot (Kapso / Meta Cloud API)
+
+The WhatsApp channel allows users to send contracts and ask legal questions via WhatsApp.
+
+**Infrastructure**:
+- Kapso (@kapso/cli) wraps the official Meta WhatsApp Cloud API — no self-hosted server needed.
+- Kapso provides a phone number, webhook management, and a REST API for sending messages.
+- Webhook events are forwarded to n8n at `https://n8n.feche.xyz/webhook/whatsapp-incoming`.
+
+**Message flow**:
+1. User sends a WhatsApp message (text or document).
+2. Meta Cloud API receives it, Kapso fires a `whatsapp.message.received` webhook to n8n.
+3. n8n workflow "WhatsApp Incoming" routes by message type:
+   - Text → legal chat pipeline (reuses existing consulta-contrato logic).
+   - Document/Image → contract analysis pipeline (reuses existing analizar-contrato logic).
+4. AI response is sent back via Kapso REST API (`POST /meta/whatsapp/v1/{phoneNumberId}/messages`).
+5. Session state is tracked in the `whatsapp_sessions` Supabase table.
+
+**Environment variables** (n8n):
+- `KAPSO_API_KEY` — API key for Kapso REST endpoints.
+- `SUPABASE_SERVICE_KEY` / `SUPABASE_ANON_KEY` — for session and contract DB access.
+
 ## Corrective Changes
 
 ### 2026-03-24

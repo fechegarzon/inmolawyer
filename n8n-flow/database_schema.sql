@@ -224,6 +224,39 @@ LEFT JOIN alertas_contrato a ON c.id = a.contrato_id
 GROUP BY c.id;
 
 -- =====================================================
+-- TABLA: whatsapp_sessions
+-- Sesiones de WhatsApp para el bot de InmoLawyer
+-- =====================================================
+CREATE TABLE IF NOT EXISTS whatsapp_sessions (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    phone_number VARCHAR(20) NOT NULL UNIQUE,
+
+    -- Estado de la conversacion
+    state VARCHAR(20) DEFAULT 'IDLE', -- IDLE, ANALYZING, CHATTING
+    active_contrato_id UUID REFERENCES contratos(id) ON DELETE SET NULL,
+
+    -- Rate limiting
+    last_message_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    message_count_today INTEGER DEFAULT 0,
+    last_count_reset DATE DEFAULT CURRENT_DATE,
+
+    -- Metadata
+    display_name VARCHAR(255),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_whatsapp_phone ON whatsapp_sessions(phone_number);
+CREATE INDEX IF NOT EXISTS idx_whatsapp_state ON whatsapp_sessions(state);
+
+-- Trigger para actualizar updated_at
+DROP TRIGGER IF EXISTS update_whatsapp_sessions_updated_at ON whatsapp_sessions;
+CREATE TRIGGER update_whatsapp_sessions_updated_at
+    BEFORE UPDATE ON whatsapp_sessions
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+-- =====================================================
 -- COMENTARIOS DE DOCUMENTACIÓN
 -- =====================================================
 COMMENT ON TABLE contratos IS 'Tabla principal que almacena los contratos de arrendamiento y sus datos extraídos';
@@ -232,3 +265,4 @@ COMMENT ON TABLE incrementos_calculados IS 'Historial de incrementos anuales cal
 COMMENT ON TABLE consultas_chat IS 'Historial de interacciones con el agente IA';
 COMMENT ON TABLE fechas_importantes IS 'Fechas clave para notificaciones y recordatorios';
 COMMENT ON TABLE ipc_historico IS 'Datos históricos del IPC de Colombia para cálculo de incrementos';
+COMMENT ON TABLE whatsapp_sessions IS 'Sesiones del bot de WhatsApp - estado por usuario y rate limiting';

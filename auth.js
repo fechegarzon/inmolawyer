@@ -301,7 +301,7 @@ async function handleRegister(e) {
             password,
             options: {
                 data: { nombre },
-                emailRedirectTo: 'https://inmolawyer.surge.sh'
+                emailRedirectTo: 'https://inmo.tools/inmolawyer/app'
             }
         });
 
