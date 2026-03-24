@@ -299,7 +299,7 @@
       "typeVersion": 2,
       "position": [-440, 512],
       "parameters": {
-        "jsCode": "const respuestaLLM = $input.first().json.text;\nconst contexto = $('Preparar Contexto Chat').first().json;\nconst webhookData = $('Webhook - Consulta Chat').first().json.body;\n\nconst consultaId = 'CON-' + Date.now();\n\nconst datosGuardar = {\n  id: consultaId,\n  contrato_id: webhookData.contratoId || contexto.contratoId,\n  pregunta: webhookData.pregunta || contexto.pregunta,\n  respuesta: respuestaLLM,\n  created_at: new Date().toISOString()\n};\n\nconst respuestaWebhook = {\n  success: true,\n  consultaId: consultaId,\n  respuesta: respuestaLLM,\n  contratoId: webhookData.contratoId\n};\n\nreturn [{ json: { ...datosGuardar, _respuestaWebhook: respuestaWebhook } }];"
+        "jsCode": "const raw = $input.first().json;\nconst respuestaLLM = raw.text || raw.response || raw.output || '';\nconst contexto = $('Preparar Contexto Chat').first().json;\nconst webhookData = $('Webhook - Consulta Chat').first().json.body;\n\nconst consultaId = 'CON-' + Date.now();\n\nconst datosGuardar = {\n  id: consultaId,\n  contrato_id: webhookData.contratoId || contexto.contratoId,\n  pregunta: webhookData.pregunta || contexto.pregunta,\n  respuesta: respuestaLLM,\n  created_at: new Date().toISOString()\n};\n\nconst respuestaWebhook = {\n  success: true,\n  consultaId: consultaId,\n  respuesta: respuestaLLM,\n  contratoId: webhookData.contratoId\n};\n\nreturn [{ json: { ...datosGuardar, _respuestaWebhook: respuestaWebhook } }];"
       }
     },
     {

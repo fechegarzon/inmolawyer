@@ -366,7 +366,7 @@
           "value": {
             "contrato_id": "={{ $('Webhook - Consulta Chat').first().json.body.contratoId }}",
             "pregunta": "={{ $('Webhook - Consulta Chat').first().json.body.pregunta }}",
-            "respuesta": "={{ $json.response || $json.text }}",
+            "respuesta": "={{ $json.response || $json.text || $json.output || '' }}",
             "modelo_ia": "claude-3-haiku-20240307"
           }
         },
@@ -387,7 +387,7 @@
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={{ JSON.stringify({ success: true, respuesta: $('Respuesta IA Chat').first().json.response || $('Respuesta IA Chat').first().json.text, referencia: 'Ley 820 de 2003' }) }}"
+        "responseBody": "={{ JSON.stringify({ success: true, respuesta: $('Respuesta IA Chat').first().json.response || $('Respuesta IA Chat').first().json.text || $('Respuesta IA Chat').first().json.output || '', referencia: 'Ley 820 de 2003' }) }}"
       },
       "id": "respuesta-chat-webhook",
       "name": "Respuesta Chat Webhook",

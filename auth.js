@@ -34,6 +34,19 @@ function normalizeEmail(email) {
     return `${cleanLocal}@${domain}`;
 }
 
+function escapeHTML(value) {
+    const div = document.createElement('div');
+    div.textContent = value == null ? '' : String(value);
+    return div.innerHTML;
+}
+
+function normalizeDisplayName(value) {
+    return String(value || '')
+        .replace(/<[^>]*>/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
 // ===== Cargar perfil del usuario desde Supabase =====
 async function loadCurrentUserProfile() {
     if (!currentUser) return null;
@@ -50,7 +63,7 @@ async function loadCurrentUserProfile() {
             const newProfile = {
                 id: currentUser.id,
                 email: currentUser.email,
-                nombre: currentUser.user_metadata?.full_name || currentUser.email.split('@')[0],
+                nombre: normalizeDisplayName(currentUser.user_metadata?.full_name || currentUser.email.split('@')[0]),
                 fecha_registro: new Date().toISOString(),
                 plan: 'freemium',
                 estudios_restantes: 5,
@@ -233,7 +246,7 @@ async function handleLogin(e) {
 // ===== Registro =====
 async function handleRegister(e) {
     e.preventDefault();
-    const nombre = document.getElementById('registerName').value.trim();
+    const nombre = normalizeDisplayName(document.getElementById('registerName').value);
     const email = document.getElementById('registerEmail').value.trim();
     const password = document.getElementById('registerPassword').value;
     const tcCheck = document.getElementById('registerTC');
@@ -243,6 +256,13 @@ async function handleRegister(e) {
     // Validar T&C obligatorio
     if (!tcCheck || !tcCheck.checked) {
         errorEl.textContent = 'Debes aceptar los Términos y Condiciones para continuar.';
+        errorEl.style.color = '#dc2626';
+        errorEl.style.display = 'block';
+        return;
+    }
+
+    if (!nombre) {
+        errorEl.textContent = 'Ingresa un nombre válido.';
         errorEl.style.color = '#dc2626';
         errorEl.style.display = 'block';
         return;
@@ -266,7 +286,7 @@ async function handleRegister(e) {
 
         if (existingByNormalized) {
             errorEl.innerHTML = aliasDetectado
-                ? `Ya existe una cuenta asociada a este email (<strong>${existingByNormalized.email}</strong>). Usá "Iniciar sesión".`
+                ? `Ya existe una cuenta asociada a este email (<strong>${escapeHTML(existingByNormalized.email)}</strong>). Usá "Iniciar sesión".`
                 : 'Este email ya tiene una cuenta. Usá "Iniciar sesión".';
             errorEl.style.color = '#dc2626';
             errorEl.style.display = 'block';

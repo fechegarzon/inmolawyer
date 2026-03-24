@@ -107,8 +107,92 @@ const CONFIG_WOMPI = {
     ]
 };
 
+const WOMPI_PENDING_PURCHASE_KEY = 'inmolawyer.pendingPurchase';
+
 // State
 let currentContractId = null;
+
+function escapeHTML(value) {
+    const div = document.createElement('div');
+    div.textContent = value == null ? '' : String(value);
+    return div.innerHTML;
+}
+
+function normalizeAlertType(value) {
+    const normalized = String(value || 'info').toLowerCase();
+    return ['danger', 'critica', 'warning', 'advertencia', 'info', 'success'].includes(normalized)
+        ? normalized
+        : 'info';
+}
+
+function getChatResponseText(payload) {
+    if (!payload || typeof payload !== 'object') return '';
+    return payload.respuesta
+        || payload.response
+        || payload.text
+        || payload.mensaje
+        || payload.result?.respuesta
+        || payload.result?.response
+        || payload.result?.text
+        || payload.result?.mensaje
+        || '';
+}
+
+function persistPendingPurchase(purchase) {
+    try {
+        window.sessionStorage.setItem(WOMPI_PENDING_PURCHASE_KEY, JSON.stringify(purchase));
+    } catch (_) {
+        // Ignore storage failures; user can still refresh manually.
+    }
+}
+
+function readPendingPurchase() {
+    try {
+        const raw = window.sessionStorage.getItem(WOMPI_PENDING_PURCHASE_KEY);
+        return raw ? JSON.parse(raw) : null;
+    } catch (_) {
+        return null;
+    }
+}
+
+function clearPendingPurchase() {
+    try {
+        window.sessionStorage.removeItem(WOMPI_PENDING_PURCHASE_KEY);
+    } catch (_) {
+        // Ignore storage failures.
+    }
+}
+
+function wait(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function confirmPendingPurchaseCredits(pendingPurchase) {
+    const previousCredits = Number(pendingPurchase?.previousCredits);
+    const expectedCredits = Number(pendingPurchase?.expectedCredits);
+    const hasPreviousCredits = Number.isFinite(previousCredits);
+    const hasExpectedCredits = Number.isFinite(expectedCredits) && expectedCredits > 0;
+
+    for (let attempt = 0; attempt < 4; attempt++) {
+        if (typeof loadCurrentUserProfile === 'function') {
+            await loadCurrentUserProfile();
+        }
+
+        const currentCredits = Number(currentUserProfile?.estudios_restantes);
+        if (Number.isFinite(currentCredits)) {
+            if (hasPreviousCredits && hasExpectedCredits && currentCredits >= previousCredits + expectedCredits) {
+                return true;
+            }
+            if (hasPreviousCredits && currentCredits > previousCredits) {
+                return true;
+            }
+        }
+
+        if (attempt < 3) await wait(2000);
+    }
+
+    return false;
+}
 
 // ===== FREEMIUM: control de estudios y chat =====
 const chatQuestionsUsed = {}; // { [contractId]: true } — 1 pregunta por contrato
@@ -241,6 +325,18 @@ async function initiateWompiCheckout(btn, reference, amountInCents) {
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Procesando...';
 
     try {
+        const selectedPlan = CONFIG_WOMPI.plans.find(plan => plan.price === amountInCents) || null;
+        persistPendingPurchase({
+            reference,
+            amountInCents,
+            expectedCredits: selectedPlan?.credits ?? null,
+            previousCredits: (typeof currentUserProfile !== 'undefined' && currentUserProfile)
+                ? currentUserProfile.estudios_restantes ?? null
+                : null,
+            userId: (typeof currentUser !== 'undefined' && currentUser) ? currentUser.id : null,
+            createdAt: Date.now()
+        });
+
         // Obtener integrity hash desde N8N (el secreto nunca sale del servidor)
         const resp = await fetch(CONFIG_WOMPI.integrityEndpoint, {
             method: 'POST',
@@ -271,24 +367,38 @@ async function initiateWompiCheckout(btn, reference, amountInCents) {
 
     } catch (err) {
         console.error('Wompi checkout error:', err);
+        clearPendingPurchase();
         showToast('Error iniciando el pago. Intenta de nuevo.', 'error');
         btn.disabled = false;
         btn.innerHTML = '<i class="fas fa-shopping-cart"></i> Comprar ahora';
     }
 }
 
-function handleWompiReturn() {
+async function handleWompiReturn() {
     const params = new URLSearchParams(window.location.search);
     const transactionId = params.get('id');
     if (!transactionId) return;
+    const pendingPurchase = readPendingPurchase();
 
     // Limpiar parámetros de la URL sin recargar
     window.history.replaceState({}, document.title, window.location.pathname);
 
-    // Notificar al usuario — N8N webhook procesa y actualiza Supabase en el fondo
-    setTimeout(() => {
-        showToast('¡Pago recibido! Tus créditos se activarán en unos segundos. Recarga si no ves el cambio.', 'success');
-    }, 1200);
+    if (!currentUser || !pendingPurchase || (pendingPurchase.userId && pendingPurchase.userId !== currentUser.id)) {
+        showToast('Recibimos el retorno del pago. Validaremos tus créditos antes de confirmarlo.', 'info');
+        return;
+    }
+
+    showToast('Validando pago y actualización de créditos...', 'info');
+    const creditsApplied = await confirmPendingPurchaseCredits(pendingPurchase);
+    clearPendingPurchase();
+
+    if (creditsApplied) {
+        if (typeof updateStudiosCounter === 'function') updateStudiosCounter();
+        showToast('Pago verificado. Tus créditos ya están disponibles.', 'success');
+        return;
+    }
+
+    showToast('Recibimos el retorno del pago, pero aún no vemos los créditos aplicados. Recarga en unos segundos o escríbenos si persiste.', 'warning');
 }
 
 // DOM Elements
@@ -686,15 +796,15 @@ function displayDeudores(deudores) {
 
     card.style.display = 'block';
     container.innerHTML = deudores.map(d => {
-        const tipoLabel = d.tipo || 'Deudor Solidario';
+        const tipoLabel = String(d.tipo || 'Deudor Solidario');
         const tipoCapital = tipoLabel.charAt(0).toUpperCase() + tipoLabel.slice(1);
         return `
             <div class="party deudor">
                 <div class="party-icon"><i class="fas fa-user-shield"></i></div>
                 <div class="party-info">
-                    <label>${tipoCapital}</label>
-                    <span>${d.nombre || 'No especificado'}</span>
-                    <small>${d.documento ? 'Doc: ' + d.documento : ''}</small>
+                    <label>${escapeHTML(tipoCapital)}</label>
+                    <span>${escapeHTML(d.nombre || 'No especificado')}</span>
+                    <small>${d.documento ? 'Doc: ' + escapeHTML(d.documento) : ''}</small>
                 </div>
             </div>
         `;
@@ -718,17 +828,21 @@ function displayAlerts(alertas) {
     }
 
     container.innerHTML = alertas.map(alert => {
-        const tipo = alert.tipo || alert.type || 'info';
+        const tipo = normalizeAlertType(alert.tipo || alert.type || 'info');
         const icon = getAlertIcon(tipo);
+        const titulo = escapeHTML(alert.titulo || alert.title || 'Alerta');
+        const descripcion = escapeHTML(alert.descripcion || alert.description || '');
+        const referenciaLegal = alert.referencia_legal ? escapeHTML(alert.referencia_legal) : '';
+        const recomendacion = alert.recomendacion ? escapeHTML(alert.recomendacion) : '';
 
         return `
             <div class="alert ${tipo}">
                 <i class="fas ${icon}"></i>
                 <div class="alert-content">
-                    <h4>${alert.titulo || alert.title || 'Alerta'}</h4>
-                    <p>${alert.descripcion || alert.description || ''}</p>
-                    ${alert.referencia_legal ? `<span class="legal-ref">${alert.referencia_legal}</span>` : ''}
-                    ${alert.recomendacion ? `<p class="recomendacion"><strong>Recomendación:</strong> ${alert.recomendacion}</p>` : ''}
+                    <h4>${titulo}</h4>
+                    <p>${descripcion}</p>
+                    ${referenciaLegal ? `<span class="legal-ref">${referenciaLegal}</span>` : ''}
+                    ${recomendacion ? `<p class="recomendacion"><strong>Recomendación:</strong> ${recomendacion}</p>` : ''}
                 </div>
             </div>
         `;
@@ -879,18 +993,20 @@ async function sendChatMessage() {
         const data = await response.json();
         removeTypingIndicator(typingId);
 
-        if (data.respuesta) {
-            addChatMessage(data.respuesta, 'assistant');
-        } else {
-            addChatMessage('Lo siento, no pude procesar tu consulta. Intenta de nuevo.', 'assistant');
+        const reply = getChatResponseText(data);
+        if (!reply) {
+            throw new Error('El servidor no devolvió una respuesta válida.');
         }
 
-        // Marcar pregunta como usada para este contrato (freemium: 1 por contrato)
+        addChatMessage(reply, 'assistant');
+
+        // Marcar pregunta como usada solo cuando hubo respuesta útil
         if (currentContractId) chatQuestionsUsed[currentContractId] = true;
 
     } catch (error) {
         console.error('Chat error:', error);
         removeTypingIndicator(typingId);
+        showToast(error.message || 'No se recibió una respuesta válida del asistente.', 'error');
         addChatMessage('Error al procesar la consulta. Por favor intenta de nuevo.', 'assistant');
     }
 
@@ -904,7 +1020,7 @@ function addChatMessage(content, type) {
     messageDiv.className = `message ${type}`;
 
     const icon = type === 'assistant' ? 'fa-balance-scale' : 'fa-user';
-    let htmlContent = content;
+    let htmlContent = sanitizeHTML(content);
     if (type === 'assistant') {
         htmlContent = formatChatResponse(content);
     }
@@ -919,9 +1035,7 @@ function addChatMessage(content, type) {
 }
 
 function sanitizeHTML(str) {
-    const div = document.createElement('div');
-    div.textContent = str;
-    return div.innerHTML;
+    return escapeHTML(str);
 }
 
 function formatChatResponse(text) {
@@ -1080,13 +1194,19 @@ function hideErrorBanner() {
 function showToast(message, type = 'info') {
     const container = document.getElementById('toastContainer');
     const toast = document.createElement('div');
-    toast.className = `toast ${type}`;
+    const normalizedType = ['success', 'error', 'warning', 'info'].includes(type) ? type : 'info';
+    toast.className = `toast ${normalizedType}`;
 
-    const icon = type === 'success' ? 'fa-check-circle' :
-                 type === 'error' ? 'fa-times-circle' :
-                 type === 'warning' ? 'fa-exclamation-triangle' : 'fa-info-circle';
+    const icon = normalizedType === 'success' ? 'fa-check-circle' :
+                 normalizedType === 'error' ? 'fa-times-circle' :
+                 normalizedType === 'warning' ? 'fa-exclamation-triangle' : 'fa-info-circle';
 
-    toast.innerHTML = `<i class="fas ${icon}"></i><span>${message}</span>`;
+    const iconEl = document.createElement('i');
+    iconEl.className = `fas ${icon}`;
+    const textEl = document.createElement('span');
+    textEl.textContent = message;
+    toast.appendChild(iconEl);
+    toast.appendChild(textEl);
     container.appendChild(toast);
 
     setTimeout(() => {
@@ -1643,7 +1763,7 @@ async function loadAdminData(forceRefresh = false) {
             contractData.forEach(r => { if (r.ciudad) freq[r.ciudad] = (freq[r.ciudad] || 0) + 1; });
             const sorted = Object.entries(freq).sort((a, b) => b[1] - a[1]).slice(0, 5);
             ciudadesHTML = sorted
-                .map(([city, n]) => `<div class="ciudad-row"><span>${city}</span><strong>${n}</strong></div>`)
+                .map(([city, n]) => `<div class="ciudad-row"><span>${escapeHTML(city)}</span><strong>${n}</strong></div>`)
                 .join('') || '<p class="admin-empty">Sin datos aún</p>';
         } else {
             ciudadesHTML = '<p class="admin-empty">Sin datos aún</p>';
@@ -1657,10 +1777,10 @@ async function loadAdminData(forceRefresh = false) {
                 const scoreClass = score === null ? '' : score >= 51 ? 'high' : score >= 26 ? 'med' : 'low';
                 return `<tr>
                     <td>${new Date(c.created_at).toLocaleDateString('es-CO')}</td>
-                    <td>${c.user_email || '—'}</td>
-                    <td>${c.ciudad || '—'}</td>
+                    <td>${escapeHTML(c.user_email || '—')}</td>
+                    <td>${escapeHTML(c.ciudad || '—')}</td>
                     <td>${score !== null ? `<span class="score-badge ${scoreClass}">${score}</span>` : '—'}</td>
-                    <td>${c.duracion_meses ? c.duracion_meses + ' meses' : '—'}</td>
+                    <td>${escapeHTML(c.duracion_meses ? c.duracion_meses + ' meses' : '—')}</td>
                 </tr>`;
             }).join('');
         } else {
@@ -1796,7 +1916,7 @@ async function loadUsersRegistry(page = 0) {
     } catch (err) {
         console.error('Error cargando clientes:', err);
         const tbody = document.getElementById('usersTableBody');
-        if (tbody) tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:#dc2626;padding:20px">Error: ${err.message}</td></tr>`;
+        if (tbody) tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:#dc2626;padding:20px">Error: ${escapeHTML(err.message)}</td></tr>`;
     }
 }
 
@@ -1836,21 +1956,23 @@ function renderUsersTable(users) {
             ? new Date(u.ultima_actividad).toLocaleDateString('es-CO')
             : '—';
         const regStr = new Date(u.fecha_registro).toLocaleDateString('es-CO');
-        const nombre = u.nombre || '<span style="color:#64748b;font-style:italic">Sin nombre</span>';
+        const nombre = u.nombre
+            ? escapeHTML(u.nombre)
+            : '<span style="color:#64748b;font-style:italic">Sin nombre</span>';
         const verBtn = u.consultas > 0
-            ? `<button class="btn-ver-preguntas" onclick="showUserQuestions('${u.id}','${(u.nombre || u.email).replace(/'/g,"\\'")}')"><i class="fas fa-eye"></i></button>`
+            ? `<button class="btn-ver-preguntas" onclick="showUserQuestionsById('${u.id}')"><i class="fas fa-eye"></i></button>`
             : '';
         const estudiosTag = u.estudios_restantes !== undefined
-            ? `<span class="badge-estudios">${u.estudios_restantes}</span>`
+            ? `<span class="badge-estudios">${escapeHTML(u.estudios_restantes)}</span>`
             : '';
         return `<tr>
             <td>${nombre}</td>
-            <td class="email-cell">${u.email} ${aliasTag}</td>
+            <td class="email-cell">${escapeHTML(u.email)} ${aliasTag}</td>
             <td>${tipoBadge[u.tipo] || ''}</td>
-            <td>${regStr} ${nuevoTag}</td>
-            <td>${lastActStr}</td>
-            <td class="num-cell">${u.contratos}</td>
-            <td class="num-cell">${u.consultas}</td>
+            <td>${escapeHTML(regStr)} ${nuevoTag}</td>
+            <td>${escapeHTML(lastActStr)}</td>
+            <td class="num-cell">${escapeHTML(u.contratos)}</td>
+            <td class="num-cell">${escapeHTML(u.consultas)}</td>
             <td class="num-cell">${estudiosTag}</td>
             <td>${verBtn}</td>
         </tr>`;
@@ -1869,7 +1991,9 @@ function _applyUsersFilter() {
     const onlyNew = document.getElementById('newFilter')?.value === 'new';
 
     const filtered = usersDataCache.filter(u => {
-        if (search && !u.email.toLowerCase().includes(search) && !u.nombre.toLowerCase().includes(search)) return false;
+        const email = (u.email || '').toLowerCase();
+        const nombre = (u.nombre || '').toLowerCase();
+        if (search && !email.includes(search) && !nombre.includes(search)) return false;
         if (activity && u.tipo !== activity) return false;
         if (onlyNew && !u.es_nuevo) return false;
         return true;
@@ -1933,15 +2057,16 @@ async function loadTopPreguntas() {
 
         container.innerHTML = top10.map(([pregunta, count], i) => {
             const pct = Math.round((count / maxCount) * 100);
+            const preguntaLabel = escapeHTML(pregunta.charAt(0).toUpperCase() + pregunta.slice(1));
             return `<div class="top-pregunta-row">
                 <span class="pregunta-rank">${i+1}</span>
                 <div class="pregunta-info">
-                    <p class="pregunta-text">${pregunta.charAt(0).toUpperCase() + pregunta.slice(1)}</p>
+                    <p class="pregunta-text">${preguntaLabel}</p>
                     <div class="pregunta-bar-wrap">
                         <div class="pregunta-bar" style="width:${pct}%"></div>
                     </div>
                 </div>
-                <span class="pregunta-count">${count}x</span>
+                <span class="pregunta-count">${escapeHTML(count)}x</span>
             </div>`;
         }).join('');
 
@@ -1949,6 +2074,12 @@ async function loadTopPreguntas() {
         console.error('Error cargando preguntas:', err);
         container.innerHTML = '<p class="admin-empty">Error cargando preguntas</p>';
     }
+}
+
+function showUserQuestionsById(userId) {
+    const user = usersDataCache.find(u => u.id === userId);
+    const userName = user?.nombre || user?.email || 'Usuario';
+    return showUserQuestions(userId, userName);
 }
 
 // ===== MODAL: PREGUNTAS DE UN USUARIO =====
@@ -1978,14 +2109,14 @@ async function showUserQuestions(userId, userName) {
 
         content.innerHTML = data.map(q => `
             <div class="uq-item">
-                <div class="uq-meta">${new Date(q.created_at).toLocaleString('es-CO')}</div>
-                <div class="uq-question"><i class="fas fa-question-circle"></i> ${q.pregunta || '—'}</div>
-                ${q.respuesta ? `<div class="uq-answer"><i class="fas fa-balance-scale"></i> ${q.respuesta.slice(0, 300)}${q.respuesta.length > 300 ? '…' : ''}</div>` : ''}
+                <div class="uq-meta">${escapeHTML(new Date(q.created_at).toLocaleString('es-CO'))}</div>
+                <div class="uq-question"><i class="fas fa-question-circle"></i> ${escapeHTML(q.pregunta || '—')}</div>
+                ${q.respuesta ? `<div class="uq-answer"><i class="fas fa-balance-scale"></i> ${escapeHTML(q.respuesta.slice(0, 300))}${q.respuesta.length > 300 ? '…' : ''}</div>` : ''}
             </div>
         `).join('');
 
     } catch (err) {
-        content.innerHTML = `<p style="color:#dc2626">Error: ${err.message}</p>`;
+        content.innerHTML = `<p style="color:#dc2626">Error: ${escapeHTML(err.message)}</p>`;
     }
 }
 
@@ -2040,17 +2171,16 @@ async function loadMisContratos() {
         const fecha = new Date(c.created_at).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' });
         const score = c.score_riesgo ?? '—';
         const scoreClass = typeof score === 'number'
-            ? (score >= 70 ? 'score-badge-low' : score >= 40 ? 'score-badge-med' : 'score-badge-high')
+            ? (score >= 51 ? 'score-badge-high' : score >= 26 ? 'score-badge-med' : 'score-badge-low')
             : 'score-badge-med';
         const riesgoLabel = typeof score === 'number'
-            ? (score >= 70 ? 'Bajo' : score >= 40 ? 'Medio' : 'Alto')
+            ? (score >= 51 ? 'Alto' : score >= 26 ? 'Medio' : 'Bajo')
             : '—';
-        const contractJson = JSON.stringify(c).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
         return `<tr>
-            <td>${fecha}</td>
-            <td>${c.arrendatario_nombre || '—'}</td>
-            <td>${c.arrendador_nombre || '—'}</td>
-            <td>${c.ciudad || '—'}</td>
+            <td>${escapeHTML(fecha)}</td>
+            <td>${escapeHTML(c.arrendatario_nombre || '—')}</td>
+            <td>${escapeHTML(c.arrendador_nombre || '—')}</td>
+            <td>${escapeHTML(c.ciudad || '—')}</td>
             <td><span class="score-badge ${scoreClass}">${score} · ${riesgoLabel}</span></td>
             <td><button class="btn-dl-pdf" onclick="downloadHistorialPDF(this)">
                 <i class="fas fa-file-pdf"></i> PDF
