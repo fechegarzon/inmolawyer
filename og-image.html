@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="es">
+<!--
+  OG IMAGE GENERATOR — InmoLawyer
+  ────────────────────────────────
+  Dimensiones target: 1200 × 630 px
+  Para exportar como og-image.png:
+    1. Abre este archivo en Chrome
+    2. DevTools → toggle device toolbar → set 1200×630
+    3. Ctrl+Shift+P → "Capture screenshot" → "Capture full size screenshot"
+    4. Guarda como og-image.png en esta misma carpeta
+    5. Deploy: npx surge . inmolawyer.surge.sh
+-->
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=1200">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <script defer data-domain="inmo.tools" src="https://plausible.io/js/script.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      width: 1200px;
+      height: 630px;
+      overflow: hidden;
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, #0f172a 0%, #1a3a2a 55%, #166534 100%);
+      color: white;
+      position: relative;
+    }
+
+    /* Círculos decorativos */
+    .circle-1 {
+      position: absolute;
+      top: -100px; right: -80px;
+      width: 500px; height: 500px;
+      background: radial-gradient(circle, rgba(22,163,74,0.3), transparent 65%);
+      border-radius: 50%;
+    }
+    .circle-2 {
+      position: absolute;
+      bottom: -120px; left: -60px;
+      width: 400px; height: 400px;
+      background: radial-gradient(circle, rgba(22,163,74,0.15), transparent 70%);
+      border-radius: 50%;
+    }
+    .circle-3 {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 700px; height: 700px;
+      background: radial-gradient(circle, rgba(22,163,74,0.05), transparent 70%);
+      border-radius: 50%;
+    }
+
+    /* Grid de líneas sutil */
+    .grid {
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+      background-size: 60px 60px;
+    }
+
+    /* Contenido principal */
+    .content {
+      position: relative;
+      z-index: 10;
+      padding: 60px 80px;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    /* Logo / marca */
+    .logo-row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .logo-icon {
+      width: 54px; height: 54px;
+      background: #16a34a;
+      border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 28px;
+    }
+    .logo-name {
+      font-size: 26px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+    .logo-tag {
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.2);
+      font-size: 13px;
+      font-weight: 600;
+      padding: 4px 12px;
+      border-radius: 20px;
+      margin-left: 6px;
+      color: rgba(255,255,255,0.85);
+    }
+
+    /* Headline */
+    .headline {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 20px 0;
+    }
+    .eyebrow {
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: #86efac;
+      margin-bottom: 16px;
+    }
+    h1 {
+      font-size: 62px;
+      font-weight: 900;
+      letter-spacing: -3px;
+      line-height: 1.0;
+      margin-bottom: 20px;
+    }
+    h1 .accent { color: #86efac; }
+    .sub {
+      font-size: 22px;
+      color: rgba(255,255,255,0.7);
+      max-width: 640px;
+      line-height: 1.5;
+      font-weight: 400;
+    }
+
+    /* Pills / features */
+    .pills {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .pill {
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.18);
+      color: rgba(255,255,255,0.88);
+      padding: 8px 18px;
+      border-radius: 30px;
+      font-size: 15px;
+      font-weight: 500;
+    }
+    .pill.green {
+      background: rgba(22,163,74,0.25);
+      border-color: rgba(22,163,74,0.5);
+      color: #86efac;
+    }
+
+    /* Right side decoration */
+    .right-deco {
+      position: absolute;
+      right: 80px;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 5;
+    }
+    .score-card {
+      background: rgba(255,255,255,0.07);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 20px;
+      padding: 28px 32px;
+      width: 260px;
+      text-align: center;
+    }
+    .score-label { font-size: 12px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: rgba(255,255,255,0.5); margin-bottom: 8px; }
+    .score-num { font-size: 72px; font-weight: 900; letter-spacing: -4px; color: #86efac; line-height: 1; }
+    .score-sub { font-size: 13px; color: rgba(255,255,255,0.5); margin-top: 8px; }
+    .alerts {
+      margin-top: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .alert-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 8px;
+      padding: 8px 12px;
+      text-align: left;
+    }
+    .alert-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .alert-dot.red { background: #ef4444; }
+    .alert-dot.yellow { background: #f59e0b; }
+    .alert-dot.green { background: #22c55e; }
+    .alert-text { font-size: 11px; color: rgba(255,255,255,0.65); }
+
+    /* URL bottom */
+    .bottom-url {
+      font-size: 16px;
+      color: rgba(255,255,255,0.35);
+      letter-spacing: 1px;
+    }
+  </style>
+</head>
+<body>
+  <div class="circle-1"></div>
+  <div class="circle-2"></div>
+  <div class="circle-3"></div>
+  <div class="grid"></div>
+
+  <!-- Right decoration: Score card mockup -->
+  <div class="right-deco">
+    <div class="score-card">
+      <div class="score-label">Score de Riesgo</div>
+      <div class="score-num">73</div>
+      <div class="score-sub">Riesgo Alto — 5 alertas</div>
+      <div class="alerts">
+        <div class="alert-row">
+          <div class="alert-dot red"></div>
+          <div class="alert-text">Incremento supera el IPC (Ley 820)</div>
+        </div>
+        <div class="alert-row">
+          <div class="alert-dot red"></div>
+          <div class="alert-text">Depósito excede 2 meses</div>
+        </div>
+        <div class="alert-row">
+          <div class="alert-dot yellow"></div>
+          <div class="alert-text">Sin inventario del inmueble</div>
+        </div>
+        <div class="alert-row">
+          <div class="alert-dot green"></div>
+          <div class="alert-text">Término de duración definido ✓</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="content">
+    <!-- Top: logo -->
+    <div class="logo-row">
+      <div class="logo-icon">⚖️</div>
+      <span class="logo-name">InmoLawyer</span>
+      <span class="logo-tag">IA + Ley 820</span>
+    </div>
+
+    <!-- Center: headline -->
+    <div class="headline">
+      <div class="eyebrow">Análisis con Inteligencia Artificial</div>
+      <h1>Tu Abogado<br><span class="accent">Inmobiliario</span><br>con IA</h1>
+      <p class="sub">Analiza contratos de arrendamiento en 30 segundos. Detecta cláusulas abusivas y verifica el IPC.</p>
+    </div>
+
+    <!-- Bottom: pills + URL -->
+    <div>
+      <div class="pills">
+        <span class="pill green">✓ Gratis para empezar</span>
+        <span class="pill">📄 Ley 820 de 2003</span>
+        <span class="pill">🏠 Colombia</span>
+        <span class="pill">⚡ 30 segundos</span>
+      </div>
+      <div class="bottom-url" style="margin-top:16px">inmolawyer.surge.sh</div>
+    </div>
+  </div>
+</body>
+</html>

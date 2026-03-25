@@ -1,0 +1,149 @@
+REPUBLICA DE COLOMBIA
+SUPERINTENDENCIA DE NOTARIADO Y REGISTRO
+OFICINA DE REGISTRO DE INSTRUMENTOS PUBLICOS DE BOGOTA ZONA CENTRO
+
+CERTIFICADO DE TRADICION Y LIBERTAD
+(Expedido conforme al articulo 54 de la Ley 1579 de 2012)
+
+Fecha de expedicion: 10 de marzo de 2025
+Hora: 02:45:12 PM
+Codigo de verificacion: VER-2025-0310-5D9E2F
+
+=============================================================================
+SECCION I - COMPLEMENTACION (DATOS DEL INMUEBLE)
+=============================================================================
+
+Numero de matricula inmobiliaria:    050C-87654321
+Circulo registral (ORIP):           BOGOTA ZONA CENTRO
+Estado del folio:                    ACTIVO
+Fecha de apertura del folio:         22 de febrero de 2003
+
+Tipo de predio:                      URBANO
+Tipo de inmueble:                    APARTAMENTO
+Direccion actual:                    Carrera 15 No. 93-47, Apartamento 1102, Bogota D.C.
+Cedula catastral:                    008912341100
+
+Cabida y linderos:
+Area privada: 78.60 m2. Area construida: 85.40 m2. Apartamento 1102 ubicado en el piso 11 de la Torre B del Conjunto Residencial Altos de la Cabrera, sometido al regimen de propiedad horizontal segun Escritura Publica No. 1567 de la Notaria 9 de Bogota del 15 de enero de 2003. Coeficiente de copropiedad: 0.9876%. Incluye un (1) garaje cubierto No. G-48 de 11.80 m2 y un (1) deposito No. D-22 de 3.50 m2. Linderos: segun plano aprobado y reglamento de propiedad horizontal inscrito.
+
+Matricula de origen:                 050C-00654321 (lote madre)
+
+=============================================================================
+SECCION II - ANOTACIONES
+=============================================================================
+
+-----------------------------------------------------------------------------
+ANOTACION No. 001
+Fecha de anotacion:     25 de febrero de 2003
+Documento:              Escritura Publica No. 0456 del 20 de febrero de 2003,
+                        Notaria 9 del Circulo de Bogota D.C.
+Naturaleza juridica:    0125 - COMPRAVENTA
+Grupo:                  01 - TRADICION
+
+De: CONSTRUCTORA CABRERA REAL S.A. - NIT 800.987.654-3
+A:  PATRICIA HELENA OSPINA RESTREPO - C.C. 41.234.567
+
+Valor: $95.000.000
+Especificacion: Primera venta del apartamento por parte de la constructora.
+-----------------------------------------------------------------------------
+
+-----------------------------------------------------------------------------
+ANOTACION No. 002
+Fecha de anotacion:     25 de febrero de 2003
+Documento:              Escritura Publica No. 0456 del 20 de febrero de 2003,
+                        Notaria 9 del Circulo de Bogota D.C.
+Naturaleza juridica:    0210 - HIPOTECA ABIERTA SIN LIMITE DE CUANTIA
+Grupo:                  02 - GRAVAMENES
+
+De: PATRICIA HELENA OSPINA RESTREPO - C.C. 41.234.567
+A favor de: BANCO AV VILLAS S.A.
+
+Valor: $70.000.000
+Especificacion: Hipoteca para garantizar credito de adquisicion de vivienda.
+-----------------------------------------------------------------------------
+
+-----------------------------------------------------------------------------
+ANOTACION No. 003
+Fecha de anotacion:     14 de agosto de 2010
+Documento:              Escritura Publica No. 2345 del 10 de agosto de 2010,
+                        Notaria 9 del Circulo de Bogota D.C.
+Naturaleza juridica:    0700 - CANCELACION DE HIPOTECA
+Grupo:                  07 - CANCELACIONES
+
+Cancela anotacion No. 002.
+Especificacion: Cancelacion de hipoteca por pago total de la obligacion
+                crediticia con Banco AV Villas.
+-----------------------------------------------------------------------------
+
+-----------------------------------------------------------------------------
+ANOTACION No. 004
+Fecha de anotacion:     3 de diciembre de 2015
+Documento:              Escritura Publica No. 4567 del 28 de noviembre de 2015,
+                        Notaria 21 del Circulo de Bogota D.C.
+Naturaleza juridica:    0125 - COMPRAVENTA
+Grupo:                  01 - TRADICION
+
+De: PATRICIA HELENA OSPINA RESTREPO - C.C. 41.234.567
+A:  ALEJANDRO MESA GUTIERREZ - C.C. 80.345.678
+
+Valor: $290.000.000
+Especificacion: Compraventa del inmueble.
+-----------------------------------------------------------------------------
+
+-----------------------------------------------------------------------------
+ANOTACION No. 005
+Fecha de anotacion:     3 de diciembre de 2015
+Documento:              Escritura Publica No. 4567 del 28 de noviembre de 2015,
+                        Notaria 21 del Circulo de Bogota D.C.
+Naturaleza juridica:    0210 - HIPOTECA ABIERTA SIN LIMITE DE CUANTIA
+Grupo:                  02 - GRAVAMENES
+
+De: ALEJANDRO MESA GUTIERREZ - C.C. 80.345.678
+A favor de: BANCO DE BOGOTA S.A.
+
+Valor: $180.000.000
+Especificacion: Hipoteca para garantizar credito de adquisicion de vivienda.
+-----------------------------------------------------------------------------
+
+-----------------------------------------------------------------------------
+ANOTACION No. 006
+Fecha de anotacion:     19 de junio de 2022
+Documento:              Escritura Publica No. 1890 del 15 de junio de 2022,
+                        Notaria 21 del Circulo de Bogota D.C.
+Naturaleza juridica:    0700 - CANCELACION DE HIPOTECA
+Grupo:                  07 - CANCELACIONES
+
+Cancela anotacion No. 005.
+Especificacion: Cancelacion de hipoteca por pago total de la obligacion
+                crediticia con Banco de Bogota.
+-----------------------------------------------------------------------------
+
+-----------------------------------------------------------------------------
+ANOTACION No. 007
+Fecha de anotacion:     8 de enero de 2023
+Documento:              Escritura Publica No. 0098 del 5 de enero de 2023,
+                        Notaria 33 del Circulo de Bogota D.C.
+Naturaleza juridica:    0125 - COMPRAVENTA
+Grupo:                  01 - TRADICION
+
+De: ALEJANDRO MESA GUTIERREZ - C.C. 80.345.678
+A:  CAROLINA ANDREA RUIZ PARDO - C.C. 52.678.901
+
+Valor: $485.000.000
+Especificacion: Compraventa del inmueble.
+-----------------------------------------------------------------------------
+
+=============================================================================
+NOTA: El presente certificado contiene SIETE (7) anotaciones.
+El inmueble NO presenta gravamenes, limitaciones ni medidas cautelares vigentes.
+=============================================================================
+
+PROPIETARIO ACTUAL SEGUN REGISTRO:
+CAROLINA ANDREA RUIZ PARDO - C.C. 52.678.901
+Porcentaje de propiedad: 100%
+(Anotacion de adquisicion: No. 007)
+
+=============================================================================
+FIN DEL CERTIFICADO
+Verificacion en linea: https://certificados.supernotariado.gov.co/certificado
+=============================================================================

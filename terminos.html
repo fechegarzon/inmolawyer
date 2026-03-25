@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terminos y Condiciones | InmoLawyer</title>
+    <meta name="description" content="Terminos y Condiciones de uso de InmoLawyer, plataforma de analisis de documentos inmobiliarios con inteligencia artificial en Colombia.">
+    <meta name="robots" content="index, follow">
+    <meta name="author" content="InmoLawyer">
+    <link rel="canonical" href="https://inmo.tools/inmolawyer/terminos">
+
+    <!-- Favicon -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#x2696;&#xFE0F;</text></svg>">
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="InmoLawyer">
+    <meta property="og:url" content="https://inmo.tools/inmolawyer/terminos">
+    <meta property="og:title" content="Terminos y Condiciones | InmoLawyer">
+    <meta property="og:description" content="Terminos y Condiciones de uso de InmoLawyer, plataforma de analisis de documentos inmobiliarios con IA.">
+    <meta property="og:locale" content="es_CO">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <script defer data-domain="inmo.tools" src="https://plausible.io/js/script.js"></script>
+    <style>
+        /* ===== CSS Variables ===== */
+        :root {
+            --green-50: #f0fdf4;
+            --green-100: #dcfce7;
+            --green-200: #bbf7d0;
+            --green-300: #86efac;
+            --green-400: #4ade80;
+            --green-500: #22c55e;
+            --green-600: #16a34a;
+            --green-700: #15803d;
+            --green-800: #166534;
+            --green-900: #14532d;
+            --green-950: #052e16;
+
+            --sage-50: #f6f7f4;
+            --sage-100: #eaede4;
+            --sage-200: #d5dbc9;
+
+            --text-dark: #1a2e1a;
+            --text-body: #374937;
+            --text-muted: #6b7f6b;
+            --text-light: #94a894;
+
+            --white: #ffffff;
+            --bg-soft: #f8fdf6;
+            --border-light: #e2eed8;
+            --border-subtle: #edf5e8;
+
+            --shadow-sm: 0 1px 3px rgba(20,83,45,0.06);
+            --shadow-md: 0 4px 16px rgba(20,83,45,0.08);
+            --shadow-lg: 0 12px 40px rgba(20,83,45,0.10);
+
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --radius-xl: 24px;
+            --radius-full: 9999px;
+        }
+
+        /* ===== Reset ===== */
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            color: var(--text-body);
+            background: var(--white);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+        a { text-decoration: none; color: inherit; }
+
+        /* ===== Container ===== */
+        .container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+
+        /* ===== NAVBAR ===== */
+        .navbar {
+            position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+            background: rgba(255,255,255,0.92);
+            backdrop-filter: blur(16px);
+            border-bottom: 1px solid var(--border-subtle);
+            transition: box-shadow 0.3s;
+        }
+        .navbar.scrolled { box-shadow: var(--shadow-md); }
+        .navbar .container {
+            display: flex; align-items: center; justify-content: space-between;
+            height: 72px;
+        }
+        .nav-logo {
+            display: flex; align-items: center; gap: 10px;
+            font-size: 1.3rem; font-weight: 700; color: var(--green-800);
+        }
+        .nav-logo i { font-size: 1.4rem; color: var(--green-500); }
+        .nav-links { display: flex; align-items: center; gap: 32px; }
+        .nav-links a {
+            font-size: 0.9rem; font-weight: 500; color: var(--text-muted);
+            transition: color 0.2s;
+        }
+        .nav-links a:hover { color: var(--green-700); }
+        .nav-actions { display: flex; align-items: center; gap: 12px; }
+        .btn-ghost {
+            padding: 9px 20px; border-radius: var(--radius-full);
+            font-size: 0.9rem; font-weight: 600; color: var(--green-700);
+            background: transparent; border: none; cursor: pointer; transition: all 0.2s;
+        }
+        .btn-ghost:hover { background: var(--green-50); }
+        .btn-primary {
+            padding: 9px 24px; border-radius: var(--radius-full);
+            font-size: 0.9rem; font-weight: 600; color: var(--white);
+            background: var(--green-700); border: none; cursor: pointer;
+            transition: all 0.25s;
+        }
+        .btn-primary:hover { background: var(--green-800); transform: translateY(-1px); box-shadow: 0 4px 14px rgba(21,128,61,0.3); }
+        .mobile-toggle { display: none; background: none; border: none; font-size: 1.5rem; color: var(--text-dark); cursor: pointer; }
+
+        /* ===== LEGAL PAGE HEADER ===== */
+        .legal-header {
+            padding: 120px 0 48px;
+            background: linear-gradient(170deg, var(--white) 0%, var(--green-50) 40%, var(--green-100) 100%);
+            text-align: center;
+        }
+        .legal-header h1 {
+            font-size: 2.4rem; font-weight: 800; color: var(--text-dark);
+            margin-bottom: 12px; letter-spacing: -0.02em;
+        }
+        .legal-header .date {
+            font-size: 0.9rem; color: var(--text-muted); font-weight: 500;
+        }
+        .legal-header .breadcrumb {
+            font-size: 0.85rem; color: var(--text-muted); margin-bottom: 24px;
+        }
+        .legal-header .breadcrumb a { color: var(--green-700); }
+        .legal-header .breadcrumb .separator { margin: 0 8px; }
+
+        /* ===== LEGAL CONTENT ===== */
+        .legal-layout {
+            display: grid; grid-template-columns: 260px 1fr; gap: 48px;
+            padding: 64px 0 100px; align-items: start;
+        }
+
+        /* Table of Contents */
+        .toc {
+            position: sticky; top: 96px;
+            background: var(--bg-soft); border: 1px solid var(--border-light);
+            border-radius: var(--radius-lg); padding: 24px;
+        }
+        .toc h3 {
+            font-size: 0.82rem; font-weight: 700; color: var(--text-dark);
+            text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 16px;
+        }
+        .toc a {
+            display: block; font-size: 0.82rem; color: var(--text-muted);
+            padding: 6px 0; border-bottom: 1px solid var(--border-subtle);
+            transition: color 0.2s;
+        }
+        .toc a:last-child { border-bottom: none; }
+        .toc a:hover { color: var(--green-700); }
+
+        /* Legal text */
+        .legal-text h2 {
+            font-size: 1.4rem; font-weight: 700; color: var(--text-dark);
+            margin: 48px 0 16px; padding-top: 16px;
+            border-top: 1px solid var(--border-light);
+        }
+        .legal-text h2:first-child { margin-top: 0; border-top: none; padding-top: 0; }
+        .legal-text h3 {
+            font-size: 1.1rem; font-weight: 600; color: var(--text-dark);
+            margin: 24px 0 12px;
+        }
+        .legal-text p {
+            font-size: 0.95rem; color: var(--text-body); line-height: 1.8;
+            margin-bottom: 16px;
+        }
+        .legal-text ul, .legal-text ol {
+            margin: 12px 0 20px 24px; font-size: 0.95rem; line-height: 1.8;
+        }
+        .legal-text li { margin-bottom: 6px; }
+        .legal-text strong { color: var(--text-dark); }
+        .legal-text .highlight-box {
+            background: var(--green-50); border-left: 4px solid var(--green-500);
+            padding: 20px 24px; border-radius: 0 var(--radius-md) var(--radius-md) 0;
+            margin: 24px 0;
+        }
+        .legal-text .highlight-box p { margin-bottom: 0; }
+        .legal-text .warning-box {
+            background: #fffbeb; border-left: 4px solid #f59e0b;
+            padding: 20px 24px; border-radius: 0 var(--radius-md) var(--radius-md) 0;
+            margin: 24px 0;
+        }
+        .legal-text .warning-box p { margin-bottom: 0; color: #92400e; }
+        .legal-text a.legal-link { color: var(--green-700); text-decoration: underline; }
+        .legal-text a.legal-link:hover { color: var(--green-800); }
+
+        /* ===== FOOTER ===== */
+        .footer {
+            padding: 64px 0 32px; background: var(--white);
+            border-top: 1px solid var(--border-light);
+        }
+        .footer-grid {
+            display: grid; grid-template-columns: 2fr 1fr 1fr 1fr;
+            gap: 48px; margin-bottom: 48px;
+        }
+        .footer-brand p { font-size: 0.88rem; color: var(--text-muted); margin-top: 12px; line-height: 1.7; }
+        .footer-col h4 { font-size: 0.85rem; font-weight: 700; color: var(--text-dark); margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.05em; }
+        .footer-col a { display: block; font-size: 0.88rem; color: var(--text-muted); margin-bottom: 10px; transition: color 0.2s; }
+        .footer-col a:hover { color: var(--green-600); }
+        .footer-social { display: flex; gap: 12px; margin-top: 16px; }
+        .footer-social a {
+            width: 36px; height: 36px; border-radius: 50%;
+            background: var(--green-50); border: 1px solid var(--border-light);
+            display: flex; align-items: center; justify-content: center;
+            color: var(--text-muted); font-size: 0.9rem; transition: all 0.2s;
+        }
+        .footer-social a:hover { background: var(--green-600); color: var(--white); border-color: var(--green-600); }
+        .footer-bottom {
+            padding-top: 24px; border-top: 1px solid var(--border-light);
+            display: flex; justify-content: space-between; align-items: center;
+            font-size: 0.8rem; color: var(--text-light);
+        }
+        .footer-disclaimer {
+            margin-top: 16px; padding: 16px 24px;
+            background: var(--green-50); border-radius: var(--radius-md);
+            font-size: 0.82rem; color: var(--text-muted); text-align: center;
+            border: 1px solid var(--green-200);
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 1024px) {
+            .footer-grid { grid-template-columns: 1fr 1fr; gap: 32px; }
+        }
+        @media (max-width: 768px) {
+            .nav-links { display: none; }
+            .mobile-toggle { display: block; }
+            .nav-links.open {
+                display: flex; flex-direction: column;
+                position: absolute; top: 72px; left: 0; right: 0;
+                background: var(--white); padding: 20px 24px; gap: 16px;
+                border-bottom: 1px solid var(--border-light);
+                box-shadow: var(--shadow-md);
+            }
+            .legal-header h1 { font-size: 1.8rem; }
+            .legal-layout { grid-template-columns: 1fr; gap: 32px; }
+            .toc { position: static; }
+            .footer-grid { grid-template-columns: 1fr; }
+            .footer-bottom { flex-direction: column; gap: 8px; text-align: center; }
+        }
+        @media (max-width: 480px) {
+            .nav-actions .btn-ghost { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ===== NAVBAR ===== -->
+<nav class="navbar" id="navbar">
+    <div class="container">
+        <a href="/inmolawyer/" class="nav-logo">
+            <i class="fas fa-balance-scale"></i>
+            InmoLawyer
+        </a>
+        <div class="nav-links" id="navLinks">
+            <a href="/inmolawyer/">Inicio</a>
+            <a href="/inmolawyer/blog/">Blog</a>
+            <a href="/inmolawyer/calculadora-incremento-arriendo">Calculadora IPC</a>
+        </div>
+        <div class="nav-actions">
+            <a href="/inmolawyer/app" class="btn-ghost">Iniciar Sesion</a>
+            <a href="/inmolawyer/app" class="btn-primary">Analizar Documento</a>
+        </div>
+        <button class="mobile-toggle" id="mobileToggle" aria-label="Menu">
+            <i class="fas fa-bars"></i>
+        </button>
+    </div>
+</nav>
+
+<!-- ===== HEADER ===== -->
+<header class="legal-header">
+    <div class="container">
+        <div class="breadcrumb">
+            <a href="/inmolawyer/">Inicio</a>
+            <span class="separator">&gt;</span>
+            <span>Terminos y Condiciones</span>
+        </div>
+        <h1>Terminos y Condiciones de Uso</h1>
+        <p class="date">Ultima actualizacion: 16 de marzo de 2026</p>
+    </div>
+</header>
+
+<!-- ===== CONTENT ===== -->
+<main class="container">
+    <div class="legal-layout">
+
+        <!-- Table of Contents -->
+        <aside class="toc">
+            <h3>Contenido</h3>
+            <a href="#definiciones">1. Definiciones</a>
+            <a href="#naturaleza">2. Naturaleza del Servicio</a>
+            <a href="#registro">3. Registro y Cuenta</a>
+            <a href="#uso">4. Uso del Servicio</a>
+            <a href="#whatsapp">5. Canal WhatsApp</a>
+            <a href="#precios">6. Precios y Pagos</a>
+            <a href="#propiedad">7. Propiedad Intelectual</a>
+            <a href="#limitacion">8. Limitacion de Responsabilidad</a>
+            <a href="#indemnidad">9. Indemnidad</a>
+            <a href="#disponibilidad">10. Disponibilidad</a>
+            <a href="#modificaciones">11. Modificaciones</a>
+            <a href="#ley-aplicable">12. Ley Aplicable</a>
+            <a href="#contacto">13. Contacto</a>
+            <a href="#disposiciones">14. Disposiciones Finales</a>
+        </aside>
+
+        <!-- Legal Text -->
+        <div class="legal-text">
+
+            <div class="highlight-box">
+                <p><strong>Estos Terminos y Condiciones regulan el acceso y uso de la plataforma InmoLawyer, operada por Inmotools, con domicilio en Bogota, Colombia.</strong></p>
+                <p style="margin-top:8px;">Al acceder o usar InmoLawyer a traves de cualquiera de sus canales (web, WhatsApp o analisis de invitado), usted acepta estos Terminos y Condiciones en su totalidad. Si no esta de acuerdo, no use la Plataforma.</p>
+            </div>
+
+            <!-- 1. DEFINICIONES -->
+            <h2 id="definiciones">1. Definiciones</h2>
+            <p><strong>1.1. Plataforma:</strong> El servicio InmoLawyer, accesible a traves de inmo.tools/inmolawyer, WhatsApp Business y cualquier otro canal habilitado, incluyendo el analisis de invitado (sin registro).</p>
+            <p><strong>1.2. Usuario:</strong> Toda persona natural o juridica que acceda o utilice la Plataforma, ya sea como usuario registrado, usuario de WhatsApp o usuario invitado.</p>
+            <p><strong>1.3. Servicio:</strong> El analisis automatizado de documentos inmobiliarios mediante inteligencia artificial, incluyendo la generacion de reportes de riesgo, alertas legales, recomendaciones y plantillas de documentos. Los tipos de documentos soportados son:</p>
+            <ul>
+                <li>Contratos de arrendamiento de vivienda urbana.</li>
+                <li>Contratos de arrendamiento comercial.</li>
+                <li>Promesas de compraventa de inmuebles.</li>
+                <li>Certificados de libertad y tradicion.</li>
+            </ul>
+            <p><strong>1.4. Documento:</strong> El documento inmobiliario que el Usuario carga en la Plataforma para su analisis (contrato, promesa de compraventa o certificado de libertad y tradicion).</p>
+            <p><strong>1.5. Reporte:</strong> El resultado del analisis automatizado del Documento, que incluye un puntaje de riesgo, identificacion de clausulas o elementos potencialmente irregulares, y recomendaciones generales.</p>
+
+            <!-- 2. NATURALEZA DEL SERVICIO -->
+            <h2 id="naturaleza">2. Naturaleza del Servicio - Disclaimer Legal</h2>
+            <div class="warning-box">
+                <p><strong>InmoLawyer NO es un bufete de abogados, una firma legal ni un abogado.</strong> InmoLawyer es una herramienta tecnologica de caracter informativo. Los analisis, reportes, alertas, recomendaciones y cualquier otro contenido generado por la Plataforma son producidos por sistemas de inteligencia artificial y tienen un proposito exclusivamente informativo y orientativo.</p>
+            </div>
+            <p><strong>2.2.</strong> InmoLawyer <strong>NO constituye, reemplaza ni sustituye la asesoria legal profesional.</strong> Los resultados generados por la Plataforma no son opiniones juridicas, conceptos legales ni dictamenes de un abogado.</p>
+            <p><strong>2.3.</strong> La inteligencia artificial puede cometer errores. Los modelos de IA utilizados (actualmente Gemini 2.5 Flash de Google), si bien estan configurados con la legislacion colombiana vigente, pueden:</p>
+            <ul>
+                <li>No detectar todas las clausulas irregulares o abusivas.</li>
+                <li>Interpretar incorrectamente clausulas ambiguas.</li>
+                <li>No estar actualizados con cambios normativos recientes.</li>
+                <li>Generar resultados inexactos o incompletos.</li>
+                <li>Omitir riesgos relevantes en documentos complejos.</li>
+            </ul>
+            <p><strong>2.4. Recomendacion expresa:</strong> Para la toma de decisiones legales vinculantes, como la firma, modificacion o terminacion de un contrato, la compraventa de un inmueble, la interposicion de acciones legales, o cualquier otra actuacion con efectos juridicos, el Usuario debe consultar a un abogado debidamente inscrito ante el Consejo Superior de la Judicatura de Colombia.</p>
+            <p><strong>2.5.</strong> Las plantillas de cartas de reclamacion y demas documentos generados por la Plataforma son modelos de referencia que el Usuario debe revisar y adaptar a su situacion particular, preferiblemente con asesoria legal profesional.</p>
+
+            <!-- 3. REGISTRO Y CUENTA -->
+            <h2 id="registro">3. Registro y Cuenta de Usuario</h2>
+            <p><strong>3.1.</strong> InmoLawyer permite tres modalidades de acceso:</p>
+            <ul>
+                <li><strong>Analisis de invitado:</strong> Un (1) analisis gratuito sin necesidad de registro.</li>
+                <li><strong>Cuenta registrada (web):</strong> Acceso completo mediante registro con correo electronico.</li>
+                <li><strong>Canal WhatsApp:</strong> Acceso mediante numero de telefono vinculado a WhatsApp.</li>
+            </ul>
+            <p><strong>3.2.</strong> Para acceder a funcionalidades completas, el Usuario debe crear una cuenta proporcionando informacion veraz, completa y actualizada.</p>
+            <p><strong>3.3.</strong> El Usuario es responsable de mantener la confidencialidad de sus credenciales de acceso.</p>
+            <p><strong>3.4.</strong> InmoLawyer se reserva el derecho de suspender o cancelar cuentas que:</p>
+            <ul>
+                <li>Proporcionen informacion falsa.</li>
+                <li>Usen el Servicio para fines ilegales o no autorizados.</li>
+                <li>Violen estos Terminos y Condiciones.</li>
+                <li>Realicen un uso abusivo o automatizado no autorizado del Servicio.</li>
+            </ul>
+
+            <!-- 4. USO DEL SERVICIO -->
+            <h2 id="uso">4. Uso del Servicio</h2>
+            <p><strong>4.1. Uso permitido:</strong> El Usuario puede usar InmoLawyer para analizar documentos inmobiliarios de los cuales sea parte o beneficiario (como arrendatario, arrendador, comprador, vendedor, o titular de un inmueble) o respecto de los cuales tenga autorizacion legitima.</p>
+            <p><strong>4.2. Declaracion del Usuario:</strong> Al cargar un Documento en la Plataforma, el Usuario declara y garantiza que:</p>
+            <ul>
+                <li>Es parte del Documento o beneficiario del mismo, o cuenta con autorizacion expresa de una de las partes para analizar el documento.</li>
+                <li>Tiene derecho legitimo a acceder al contenido del Documento.</li>
+                <li>No carga el Documento con fines ilegales, difamatorios o de acoso.</li>
+                <li>Es mayor de dieciocho (18) anos o cuenta con autorizacion de su representante legal.</li>
+            </ul>
+            <p><strong>4.3. Uso prohibido:</strong> El Usuario se compromete a NO:</p>
+            <ul>
+                <li>Cargar documentos de terceros sin autorizacion.</li>
+                <li>Usar los analisis para acosar, extorsionar o perjudicar a la contraparte contractual.</li>
+                <li>Reproducir, distribuir o comercializar los reportes con fines distintos a su uso personal.</li>
+                <li>Intentar extraer, copiar o replicar los algoritmos, prompts o modelos de IA de la Plataforma.</li>
+                <li>Realizar ingenieria inversa del Servicio.</li>
+                <li>Enviar contenido que no sea un documento inmobiliario legitimo (documentos fraudulentos, contenido ilegal, malware).</li>
+                <li>Usar el Servicio para alimentar otros sistemas de IA o servicios competidores.</li>
+            </ul>
+
+            <!-- 5. CANAL WHATSAPP -->
+            <h2 id="whatsapp">5. Canal WhatsApp</h2>
+            <p><strong>5.1.</strong> InmoLawyer ofrece su Servicio a traves de WhatsApp Business. Al usar este canal, el Usuario acepta adicionalmente las politicas de Meta Platforms, Inc. (WhatsApp).</p>
+            <p><strong>5.2. Consentimiento:</strong> Antes de realizar el primer analisis por WhatsApp, se presentara al Usuario un aviso de privacidad resumido y se solicitara su consentimiento explicito para el tratamiento de datos personales. El analisis no procedera sin dicho consentimiento.</p>
+            <p><strong>5.3.</strong> InmoLawyer conservara evidencia del consentimiento otorgado por WhatsApp, incluyendo timestamp, numero de telefono y texto de aceptacion.</p>
+            <p><strong>5.4.</strong> El Usuario podra revocar su consentimiento en cualquier momento enviando el comando "ELIMINAR MIS DATOS" por WhatsApp o contactando a soporte@inmo.tools.</p>
+
+            <!-- 6. PRECIOS Y PAGOS -->
+            <h2 id="precios">6. Modelo de Precios y Pagos</h2>
+            <p><strong>6.1. Modelo freemium:</strong> InmoLawyer ofrece un (1) analisis gratuito para usuarios nuevos (via web como invitado o via WhatsApp). Analisis adicionales requieren pago.</p>
+            <p><strong>6.2. Precios:</strong> Los precios vigentes se publican en la Plataforma. InmoLawyer se reserva el derecho de modificarlos con previo aviso de treinta (30) dias.</p>
+            <p><strong>6.3. Pasarela de pagos:</strong> Los pagos se procesan a traves de Wompi (Bancolombia S.A.). InmoLawyer NO almacena datos de tarjetas de credito o debito. El tratamiento de datos financieros por parte de Wompi se rige por sus propios terminos y condiciones.</p>
+            <p><strong>6.4. Reembolsos:</strong> Dado que el Servicio se presta de forma instantanea una vez iniciado el analisis, no se ofrecen reembolsos una vez generado el Reporte, salvo en caso de falla tecnica comprobable que impida la entrega del resultado. En caso de falla tecnica, el Usuario podra solicitar un nuevo analisis sin costo o el reembolso del valor pagado, comunicandose a soporte@inmo.tools.</p>
+            <p><strong>6.5. Derecho de retracto (Ley 1480 de 2011, Art. 47):</strong> Dado que el servicio se ejecuta de manera inmediata y automatica, el derecho de retracto se agota una vez iniciado el procesamiento del Documento. El Usuario acepta que, al solicitar el analisis, autoriza la ejecucion inmediata del servicio.</p>
+
+            <!-- 7. PROPIEDAD INTELECTUAL -->
+            <h2 id="propiedad">7. Propiedad Intelectual</h2>
+            <p><strong>7.1. Propiedad de InmoLawyer:</strong> La Plataforma, su codigo fuente, algoritmos, modelos de IA, diseno, marca, logotipos y contenido son propiedad exclusiva de InmoLawyer (Inmotools) y estan protegidos por las leyes colombianas e internacionales de propiedad intelectual (Decision 486 de la CAN, Ley 23 de 1982).</p>
+            <p><strong>7.2. Propiedad del Usuario:</strong> El Documento cargado por el Usuario sigue siendo de su propiedad. InmoLawyer no adquiere ningun derecho de propiedad sobre el Documento.</p>
+            <p><strong>7.3. Licencia limitada:</strong> Al cargar un Documento, el Usuario otorga a InmoLawyer una licencia temporal, no exclusiva, limitada y revocable para procesar el documento con la unica finalidad de prestar el Servicio contratado.</p>
+            <p><strong>7.4. Reportes:</strong> Los reportes generados son propiedad de InmoLawyer, con licencia de uso otorgada al Usuario para su uso personal. InmoLawyer podra utilizar datos anonimizados y agregados de los analisis para mejorar el Servicio, generar estadisticas y con fines de investigacion, sin que sea posible identificar al Usuario ni las partes del documento.</p>
+
+            <!-- 8. LIMITACION DE RESPONSABILIDAD -->
+            <h2 id="limitacion">8. Limitacion de Responsabilidad</h2>
+            <p><strong>8.1.</strong> InmoLawyer no sera responsable por:</p>
+            <ul>
+                <li>Decisiones legales, financieras o de cualquier otra indole que el Usuario tome con base en los analisis o reportes generados.</li>
+                <li>Danos directos, indirectos, incidentales, especiales, consecuenciales o punitivos derivados del uso o imposibilidad de uso del Servicio.</li>
+                <li>Errores, omisiones o inexactitudes en los analisis generados por la inteligencia artificial.</li>
+                <li>Interrupciones del Servicio por causas tecnicas, de fuerza mayor o caso fortuito.</li>
+                <li>Acciones legales o reclamaciones de terceros (incluyendo contrapartes contractuales) derivadas del uso del Servicio por parte del Usuario.</li>
+                <li>La actualizacion o vigencia de las normas legales utilizadas como referencia en los analisis.</li>
+            </ul>
+            <p><strong>8.2. Limite maximo de responsabilidad:</strong> En todo caso, la responsabilidad total de InmoLawyer frente al Usuario estara limitada al monto efectivamente pagado por el Usuario a InmoLawyer durante los doce (12) meses anteriores al evento que de lugar a la reclamacion.</p>
+            <p><strong>8.3.</strong> Las limitaciones anteriores se aplican en la maxima medida permitida por la ley colombiana, sin perjuicio de los derechos irrenunciables del consumidor establecidos en la Ley 1480 de 2011 (Estatuto del Consumidor).</p>
+
+            <!-- 9. INDEMNIDAD -->
+            <h2 id="indemnidad">9. Indemnidad</h2>
+            <p><strong>9.1.</strong> El Usuario se compromete a mantener indemne a InmoLawyer (Inmotools), sus directores, empleados, contratistas y afiliados, frente a cualquier reclamacion, demanda, dano, perdida, costo o gasto (incluyendo honorarios de abogados) que surja de:</p>
+            <ul>
+                <li>El uso del Servicio por parte del Usuario.</li>
+                <li>La violacion de estos Terminos y Condiciones.</li>
+                <li>La violacion de derechos de terceros.</li>
+                <li>La carga de documentos sin la debida autorizacion.</li>
+            </ul>
+
+            <!-- 10. DISPONIBILIDAD -->
+            <h2 id="disponibilidad">10. Disponibilidad del Servicio</h2>
+            <p><strong>10.1.</strong> InmoLawyer hara esfuerzos comercialmente razonables para mantener la disponibilidad de la Plataforma, pero no garantiza un funcionamiento ininterrumpido o libre de errores.</p>
+            <p><strong>10.2.</strong> InmoLawyer se reserva el derecho de suspender temporalmente el Servicio para mantenimiento, actualizaciones o mejoras, sin que esto genere responsabilidad alguna.</p>
+            <p><strong>10.3.</strong> InmoLawyer se reserva el derecho de descontinuar el Servicio en cualquier momento, con previo aviso de treinta (30) dias a los Usuarios registrados.</p>
+
+            <!-- 11. MODIFICACIONES -->
+            <h2 id="modificaciones">11. Modificaciones</h2>
+            <p><strong>11.1.</strong> InmoLawyer se reserva el derecho de modificar estos Terminos y Condiciones en cualquier momento.</p>
+            <p><strong>11.2.</strong> Las modificaciones seran notificadas al Usuario mediante publicacion en la Plataforma y/o por correo electronico o WhatsApp.</p>
+            <p><strong>11.3.</strong> El uso continuado del Servicio despues de la notificacion constituira aceptacion de los nuevos terminos.</p>
+            <p><strong>11.4.</strong> Si el Usuario no esta de acuerdo con las modificaciones, debera cesar el uso de la Plataforma y podra solicitar la eliminacion de su cuenta y datos.</p>
+
+            <!-- 12. LEY APLICABLE -->
+            <h2 id="ley-aplicable">12. Ley Aplicable y Resolucion de Controversias</h2>
+            <p><strong>12.1.</strong> Estos Terminos y Condiciones se rigen por las leyes de la Republica de Colombia.</p>
+            <p><strong>12.2.</strong> Para la resolucion de controversias, las partes acuerdan el siguiente procedimiento escalonado:</p>
+            <ul>
+                <li><strong>Arreglo directo:</strong> Las partes intentaran resolver la controversia de forma directa durante un plazo de treinta (30) dias calendario, mediante comunicacion escrita al correo soporte@inmo.tools.</li>
+                <li><strong>Mediacion:</strong> Si no se logra arreglo directo, las partes podran acudir a un centro de conciliacion autorizado por el Ministerio de Justicia.</li>
+                <li><strong>Jurisdiccion:</strong> En caso de no lograrse solucion, las partes se someten a la jurisdiccion de los jueces de la Republica de Colombia, con sede en Bogota D.C.</li>
+            </ul>
+            <p><strong>12.3.</strong> Lo anterior sin perjuicio del derecho del consumidor de acudir ante la Superintendencia de Industria y Comercio (SIC) en los terminos de la Ley 1480 de 2011.</p>
+
+            <!-- 13. CONTACTO -->
+            <h2 id="contacto">13. Contacto</h2>
+            <p>Para cualquier consulta, reclamacion o ejercicio de derechos relacionados con estos Terminos y Condiciones:</p>
+            <ul>
+                <li><strong>Correo de soporte:</strong> soporte@inmo.tools</li>
+                <li><strong>Proteccion de datos:</strong> datos@inmo.tools</li>
+                <li><strong>Sitio web:</strong> inmo.tools/inmolawyer</li>
+                <li><strong>Ubicacion:</strong> Bogota, Colombia</li>
+            </ul>
+
+            <!-- 14. DISPOSICIONES FINALES -->
+            <h2 id="disposiciones">14. Disposiciones Finales</h2>
+            <p><strong>14.1.</strong> Si alguna clausula de estos Terminos y Condiciones fuere declarada nula o inaplicable, las demas disposiciones mantendran su plena vigencia y efecto.</p>
+            <p><strong>14.2.</strong> La falta de ejercicio de un derecho por parte de InmoLawyer no constituira renuncia al mismo.</p>
+            <p><strong>14.3.</strong> Estos Terminos y Condiciones, junto con la <a href="/inmolawyer/privacidad" class="legal-link">Politica de Tratamiento de Datos Personales</a>, constituyen el acuerdo completo entre las partes respecto del uso de la Plataforma.</p>
+
+        </div>
+    </div>
+</main>
+
+<!-- ===== FOOTER ===== -->
+<footer class="footer">
+    <div class="container">
+        <div class="footer-disclaimer">
+            InmoLawyer es una herramienta de analisis con IA operada por Inmotools. No somos abogados ni firma legal. Los analisis son orientativos y no constituyen asesoria juridica.
+        </div>
+        <div class="footer-grid" style="margin-top: 48px;">
+            <div class="footer-brand">
+                <div class="nav-logo" style="margin-bottom:4px;">
+                    <i class="fas fa-balance-scale"></i>
+                    InmoLawyer
+                </div>
+                <p>Inteligencia artificial aplicada al derecho inmobiliario colombiano.</p>
+                <div class="footer-social">
+                    <a href="#" aria-label="LinkedIn"><i class="fab fa-linkedin-in"></i></a>
+                    <a href="#" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+                    <a href="#" aria-label="TikTok"><i class="fab fa-tiktok"></i></a>
+                </div>
+            </div>
+            <div class="footer-col">
+                <h4>Producto</h4>
+                <a href="/inmolawyer/">Inicio</a>
+                <a href="/inmolawyer/app">Analizar Documento</a>
+                <a href="/inmolawyer/calculadora-incremento-arriendo">Calculadora IPC</a>
+                <a href="/inmolawyer/blog/">Blog</a>
+            </div>
+            <div class="footer-col">
+                <h4>Legal</h4>
+                <a href="/inmolawyer/terminos">Terminos y Condiciones</a>
+                <a href="/inmolawyer/privacidad">Politica de Privacidad</a>
+            </div>
+            <div class="footer-col">
+                <h4>Contacto</h4>
+                <a href="mailto:soporte@inmo.tools">soporte@inmo.tools</a>
+                <a href="#">Bogota, Colombia</a>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <span>&copy; 2026 InmoLawyer (Inmotools). Todos los derechos reservados.</span>
+            <span>No reemplaza el criterio de un abogado profesional.</span>
+        </div>
+    </div>
+</footer>
+
+<!-- ===== JS ===== -->
+<script>
+    const navbar = document.getElementById('navbar');
+    window.addEventListener('scroll', () => {
+        navbar.classList.toggle('scrolled', window.scrollY > 20);
+    });
+    const mobileToggle = document.getElementById('mobileToggle');
+    const navLinks = document.getElementById('navLinks');
+    mobileToggle.addEventListener('click', () => {
+        navLinks.classList.toggle('open');
+        const icon = mobileToggle.querySelector('i');
+        icon.classList.toggle('fa-bars');
+        icon.classList.toggle('fa-times');
+    });
+</script>
+</body>
+</html>

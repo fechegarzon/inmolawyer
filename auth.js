@@ -25,6 +25,22 @@ let currentUser = null;
 let currentUserProfile = null;
 let appInitialized = false;
 
+// ===== Rate limit protection (client-side) =====
+const _authAttempts = {};
+function _checkClientRateLimit(action, maxAttempts = 5, windowMs = 120000) {
+    const now = Date.now();
+    if (!_authAttempts[action]) _authAttempts[action] = [];
+    // Purge old attempts outside the window
+    _authAttempts[action] = _authAttempts[action].filter(t => now - t < windowMs);
+    if (_authAttempts[action].length >= maxAttempts) {
+        const oldestInWindow = _authAttempts[action][0];
+        const waitSecs = Math.ceil((windowMs - (now - oldestInWindow)) / 1000);
+        return `Demasiados intentos. Esperá ${waitSecs} segundos.`;
+    }
+    _authAttempts[action].push(now);
+    return null;
+}
+
 // ===== Normalizar email: eliminar +alias =====
 function normalizeEmail(email) {
     const lower = email.toLowerCase().trim();
@@ -218,11 +234,24 @@ async function handleLogin(e) {
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Iniciando sesión...';
     errorEl.style.display = 'none';
 
+    // Client-side rate limit to avoid hitting Supabase's server limit
+    const rateLimitMsg = _checkClientRateLimit('login', 5, 120000);
+    if (rateLimitMsg) {
+        errorEl.textContent = rateLimitMsg;
+        errorEl.style.color = '#dc2626';
+        errorEl.style.display = 'block';
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Iniciar sesión';
+        return;
+    }
+
     try {
         const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
         if (error) {
             const msg = error.message === 'Invalid login credentials'
                 ? 'Email o contraseña incorrectos'
+                : error.message.includes('rate limit') || error.status === 429
+                ? 'Demasiados intentos. Esperá unos minutos.'
                 : error.message;
             errorEl.textContent = msg;
             errorEl.style.color = '#dc2626';
@@ -267,6 +296,17 @@ async function handleRegister(e) {
     btn.disabled = true;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creando cuenta...';
     errorEl.style.display = 'none';
+
+    // Client-side rate limit to avoid hitting Supabase's server limit
+    const rateLimitMsg = _checkClientRateLimit('register', 3, 120000);
+    if (rateLimitMsg) {
+        errorEl.textContent = rateLimitMsg;
+        errorEl.style.color = '#dc2626';
+        errorEl.style.display = 'block';
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-user-plus"></i> Crear cuenta';
+        return;
+    }
 
     // Detectar +alias
     const emailNormalizado = normalizeEmail(email);
@@ -462,6 +502,17 @@ async function handleForgotPassword() {
     btn.disabled = true;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando...';
     msgEl.style.display = 'none';
+
+    // Client-side rate limit to avoid hitting Supabase's server limit
+    const rateLimitMsg = _checkClientRateLimit('forgot', 2, 120000);
+    if (rateLimitMsg) {
+        msgEl.textContent = rateLimitMsg;
+        msgEl.style.color = '#dc2626';
+        msgEl.style.display = 'block';
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-envelope"></i> Enviar enlace';
+        return;
+    }
 
     try {
         const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {

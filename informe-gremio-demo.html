@@ -1,0 +1,1670 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>InmoLawyer — Estudio de Mercado Simulado · Bogotá 2025</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"/>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
+  <script defer data-domain="inmo.tools" src="https://plausible.io/js/script.js"></script>
+  <style>
+    :root {
+      --green: #16a34a; --green-dark: #15803d; --green-light: #bbf7d0; --green-bg: #f0fdf4;
+      --slate: #1e293b; --slate-mid: #475569; --slate-light: #94a3b8; --slate-bg: #f8fafc;
+      --white: #ffffff; --red: #dc2626; --red-light: #fee2e2;
+      --yellow: #d97706; --yellow-light: #fef3c7; --border: #e2e8f0;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', sans-serif; background: var(--slate-bg); color: var(--slate); line-height: 1.6; }
+
+    /* HEADER */
+    .header {
+      background: linear-gradient(135deg, #0f172a 0%, #1e3a2f 60%, #166534 100%);
+      color: white; padding: 56px 40px 72px; position: relative; overflow: hidden;
+    }
+    .header::before {
+      content: ''; position: absolute; top: -60px; right: -60px;
+      width: 400px; height: 400px;
+      background: radial-gradient(circle, rgba(22,163,74,0.25), transparent 70%); border-radius: 50%;
+    }
+    .header::after {
+      content: ''; position: absolute; bottom: -80px; left: 30%; width: 300px; height: 300px;
+      background: radial-gradient(circle, rgba(22,163,74,0.12), transparent 70%); border-radius: 50%;
+    }
+    .header-inner { max-width: 1100px; margin: 0 auto; position: relative; z-index: 1; }
+    .logo-row { display: flex; align-items: center; gap: 10px; margin-bottom: 36px; }
+    .logo-icon {
+      width: 42px; height: 42px; background: var(--green); border-radius: 10px;
+      display: flex; align-items: center; justify-content: center; font-size: 20px;
+    }
+    .logo-text { font-size: 20px; font-weight: 700; letter-spacing: -0.5px; }
+    .logo-badge {
+      background: rgba(255,255,255,0.15); color: white; font-size: 11px;
+      font-weight: 600; padding: 2px 10px; border-radius: 20px; margin-left: 6px;
+    }
+    .header h1 { font-size: 44px; font-weight: 900; letter-spacing: -2px; line-height: 1.05; margin-bottom: 14px; }
+    .header h1 .accent { color: #86efac; }
+    .header .subtitle { font-size: 17px; color: rgba(255,255,255,0.75); max-width: 580px; margin-bottom: 28px; }
+    .header-meta { display: flex; gap: 10px; flex-wrap: wrap; }
+    .meta-badge {
+      background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.18);
+      color: rgba(255,255,255,0.88); padding: 5px 13px; border-radius: 20px; font-size: 12px; font-weight: 500;
+    }
+
+    /* KPI GRID */
+    .kpi-wrapper { max-width: 1100px; margin: -40px auto 0; padding: 0 24px; position: relative; z-index: 10; }
+    .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+    .kpi-card {
+      background: white; border-radius: 16px; padding: 22px 20px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.09); border: 1px solid var(--border);
+    }
+    .kpi-icon {
+      width: 38px; height: 38px; border-radius: 9px;
+      display: flex; align-items: center; justify-content: center; font-size: 17px; margin-bottom: 14px;
+    }
+    .kpi-icon.green { background: var(--green-bg); }
+    .kpi-icon.red { background: var(--red-light); }
+    .kpi-icon.yellow { background: var(--yellow-light); }
+    .kpi-icon.blue { background: #eff6ff; }
+    .kpi-value { font-size: 26px; font-weight: 800; letter-spacing: -1px; color: var(--slate); margin-bottom: 3px; }
+    .kpi-label { font-size: 12px; color: var(--slate-mid); font-weight: 500; }
+    .kpi-sub { font-size: 11px; font-weight: 600; margin-top: 6px; }
+    .kpi-sub.bad { color: var(--red); } .kpi-sub.good { color: var(--green); }
+
+    /* MAIN */
+    .container { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+    section { padding: 48px 0; border-bottom: 1px solid var(--border); }
+    section:last-of-type { border-bottom: none; }
+    .section-label { font-size: 10px; font-weight: 700; letter-spacing: 1.8px; text-transform: uppercase; color: var(--green); margin-bottom: 5px; }
+    .section-title { font-size: 24px; font-weight: 700; letter-spacing: -0.5px; color: var(--slate); }
+    .section-sub { font-size: 14px; color: var(--slate-mid); margin-top: 5px; margin-bottom: 24px; }
+
+    /* CARDS */
+    .chart-row { display: grid; gap: 20px; }
+    .cols-2 { grid-template-columns: 1fr 1fr; }
+    .cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+    .cols-1-2 { grid-template-columns: 5fr 7fr; }
+    .chart-card {
+      background: white; border-radius: 16px; padding: 22px 22px 18px;
+      border: 1px solid var(--border); box-shadow: 0 1px 8px rgba(0,0,0,0.04);
+    }
+    .chart-card h3 { font-size: 14px; font-weight: 700; color: var(--slate); margin-bottom: 3px; }
+    .card-desc { font-size: 12px; color: var(--slate-light); margin-bottom: 16px; }
+
+    /* TABLES */
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th { background: var(--slate-bg); color: var(--slate-mid); font-size: 10px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; padding: 9px 12px; text-align: left; border-bottom: 1px solid var(--border); }
+    td { padding: 10px 12px; border-bottom: 1px solid #f1f5f9; color: var(--slate); }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #fafafa; }
+
+    /* BADGES */
+    .badge { display: inline-flex; align-items: center; padding: 2px 9px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+    .badge.green { background: var(--green-bg); color: var(--green-dark); }
+    .badge.red { background: var(--red-light); color: var(--red); }
+    .badge.yellow { background: var(--yellow-light); color: var(--yellow); }
+    .badge.gray { background: #f1f5f9; color: var(--slate-mid); }
+
+    /* RISK COLORS */
+    .risk-high { color: var(--red); font-weight: 700; }
+    .risk-mid  { color: var(--yellow); font-weight: 700; }
+    .risk-low  { color: var(--green); font-weight: 700; }
+    .risk-bar  { display: inline-block; height: 5px; border-radius: 3px; margin-right: 6px; vertical-align: middle; }
+
+    /* HIGHLIGHTS */
+    .highlight-box {
+      background: linear-gradient(135deg, #fef2f2, #fff7ed);
+      border: 1px solid #fca5a5; border-radius: 14px; padding: 22px 26px; margin: 0 0 20px;
+    }
+    .big-num { font-size: 42px; font-weight: 900; color: var(--red); display: inline; letter-spacing: -2px; }
+    .highlight-box p { font-size: 14px; color: #7f1d1d; margin-top: 8px; line-height: 1.7; }
+    .insight-box { background: var(--green-bg); border: 1px solid #86efac; border-radius: 12px; padding: 14px 18px; }
+    .insight-box p { font-size: 13px; color: #14532d; }
+
+    /* ZONE PILLS */
+    .zone-pills { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 16px; }
+    .zone-pill { flex: 1; border-radius: 10px; padding: 12px; text-align: center; }
+    .zone-pill .zn { font-size: 20px; font-weight: 800; margin-bottom: 2px; }
+    .zone-pill .zl { font-size: 11px; font-weight: 600; }
+    .zone-pill .zs { font-size: 10px; font-weight: 400; display: block; }
+
+    /* CTA */
+    .cta-section {
+      background: linear-gradient(135deg, #0f172a, #14532d);
+      color: white; border-radius: 20px; padding: 52px 44px; margin: 48px 0; text-align: center;
+    }
+    .cta-section h2 { font-size: 30px; font-weight: 800; letter-spacing: -0.8px; margin-bottom: 12px; }
+    .cta-section h2 span { color: #86efac; }
+    .cta-section > p { font-size: 16px; color: rgba(255,255,255,0.7); max-width: 540px; margin: 0 auto 36px; }
+    .benefits-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 36px; text-align: left; }
+    .benefit-card { background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12); border-radius: 12px; padding: 20px; }
+    .benefit-card .bi { font-size: 24px; margin-bottom: 8px; }
+    .benefit-card h4 { font-size: 14px; font-weight: 700; margin-bottom: 6px; }
+    .benefit-card p { font-size: 12px; color: rgba(255,255,255,0.6); line-height: 1.6; }
+    .cta-btn {
+      background: var(--green); color: white; border: none;
+      padding: 15px 36px; border-radius: 10px; font-size: 15px; font-weight: 700;
+      cursor: pointer; letter-spacing: -0.3px; font-family: 'Inter', sans-serif;
+    }
+    .cta-btn:hover { background: var(--green-dark); }
+    .cta-contact { margin-top: 14px; font-size: 13px; color: rgba(255,255,255,0.45); }
+
+    /* DISCLAIMER */
+    .disclaimer {
+      background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px;
+      padding: 11px 16px; font-size: 11px; color: #92400e; margin-top: 20px; line-height: 1.6;
+    }
+
+    /* FOOTER */
+    .footer { background: white; border-top: 1px solid var(--border); padding: 20px 24px; text-align: center; font-size: 12px; color: var(--slate-light); }
+    .footer strong { color: var(--slate-mid); }
+
+    @media (max-width: 800px) {
+      .kpi-grid { grid-template-columns: repeat(2,1fr); }
+      .cols-2, .cols-1-2 { grid-template-columns: 1fr; }
+      .benefits-grid { grid-template-columns: 1fr; }
+      .header h1 { font-size: 28px; }
+    }
+    /* FAQ ACCORDION */
+    .faq-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    .faq-item {
+      background:white; border:1px solid var(--border); border-radius:12px;
+      overflow:hidden; transition:box-shadow 0.15s;
+    }
+    .faq-item:hover { box-shadow:0 2px 12px rgba(0,0,0,0.07); }
+    .faq-q {
+      display:flex; align-items:flex-start; gap:12px;
+      padding:16px 18px; cursor:pointer; user-select:none;
+    }
+    .faq-icon { font-size:20px; flex-shrink:0; margin-top:1px; }
+    .faq-q-text { flex:1; }
+    .faq-q-text strong { font-size:13px; font-weight:700; color:var(--slate); display:block; margin-bottom:4px; line-height:1.4; }
+    .faq-freq { font-size:11px; font-weight:600; color:var(--slate-light); }
+    .faq-freq.freq-high { color:var(--red); }
+    .faq-freq.freq-mid  { color:var(--yellow); }
+    .faq-freq.freq-low  { color:var(--green); }
+    .faq-arrow { font-size:12px; color:var(--slate-light); flex-shrink:0; margin-top:3px; transition:transform 0.2s; }
+    .faq-item.open .faq-arrow { transform:rotate(180deg); }
+    .faq-body {
+      max-height:0; overflow:hidden; transition:max-height 0.25s ease;
+      padding:0 18px; border-top:0 solid var(--border);
+    }
+    .faq-item.open .faq-body { max-height:300px; padding:0 18px 14px; border-top-width:1px; }
+    .faq-body p { font-size:13px; color:var(--slate-mid); line-height:1.7; padding-top:12px; }
+    .faq-body .faq-ley { display:inline-block; background:#eff6ff; color:#2563eb; font-size:10px; font-weight:700; padding:2px 8px; border-radius:10px; margin-top:8px; letter-spacing:0.4px; }
+    @media (max-width:800px) { .faq-grid { grid-template-columns:1fr; } }
+
+    /* MAP */
+    .map-filters { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px; }
+    .map-filter-btn {
+      padding:7px 18px; border-radius:20px; border:1.5px solid #1e293b;
+      font-size:12px; font-weight:600; cursor:pointer; background:white; color:#1e293b;
+      font-family:'Inter',sans-serif; transition:all 0.15s;
+    }
+    #bogotaMap { width:100%; height:480px; border-radius:14px; border:1px solid var(--border); overflow:hidden; }
+    .leaflet-popup-content { margin:12px 14px !important; }
+    .leaflet-popup-content-wrapper { border-radius:10px !important; }
+
+    /* PORTAL DEVIATION */
+    .dev-positive { color:var(--red); font-weight:700; }
+    .dev-negative { color:var(--green); font-weight:700; }
+
+    @media print {
+      body { background: white; }
+      .kpi-card, .chart-card { box-shadow: none; }
+      section { page-break-inside: avoid; }
+      .cta-section { page-break-before: always; }
+      #bogotaMap { display:none; }
+    }
+    /* ═══ EMAIL GATE ═══ */
+    .email-gate {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 99999;
+      background: linear-gradient(135deg, #0f172a 0%, #1e3a2f 60%, #166534 100%);
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Inter', sans-serif;
+    }
+    .email-gate.hidden { display: none; }
+    .gate-card {
+      background: white; border-radius: 20px; padding: 48px 40px; max-width: 440px; width: 90%;
+      box-shadow: 0 25px 60px rgba(0,0,0,0.3); text-align: center;
+    }
+    .gate-logo {
+      width: 56px; height: 56px; background: var(--green); border-radius: 14px;
+      display: flex; align-items: center; justify-content: center; font-size: 26px;
+      margin: 0 auto 20px;
+    }
+    .gate-card h2 {
+      font-size: 22px; font-weight: 800; color: var(--slate); letter-spacing: -0.5px; margin-bottom: 8px;
+    }
+    .gate-card p {
+      font-size: 14px; color: var(--slate-mid); margin-bottom: 28px; line-height: 1.5;
+    }
+    .gate-form { display: flex; flex-direction: column; gap: 12px; }
+    .gate-input {
+      width: 100%; padding: 14px 16px; border: 2px solid var(--border); border-radius: 12px;
+      font-size: 15px; font-family: 'Inter', sans-serif; outline: none; transition: border-color 0.2s;
+    }
+    .gate-input:focus { border-color: var(--green); }
+    .gate-input::placeholder { color: var(--slate-light); }
+    .gate-btn {
+      width: 100%; padding: 14px; background: var(--green); color: white; border: none;
+      border-radius: 12px; font-size: 15px; font-weight: 700; cursor: pointer;
+      font-family: 'Inter', sans-serif; transition: background 0.2s;
+    }
+    .gate-btn:hover { background: var(--green-dark); }
+    .gate-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .gate-footer {
+      margin-top: 20px; font-size: 11px; color: var(--slate-light); line-height: 1.5;
+    }
+    .gate-error {
+      color: var(--red); font-size: 12px; font-weight: 500; margin-top: -4px; display: none;
+    }
+    .content-wrapper { display: none; }
+    .content-wrapper.visible { display: block; }
+  </style>
+</head>
+<body>
+
+<!-- ═══ EMAIL GATE ═══ -->
+<div class="email-gate" id="emailGate">
+  <div class="gate-card">
+    <div class="gate-logo">⚖️</div>
+    <h2>Accede al Estudio de Mercado</h2>
+    <p>Ingresa tu correo electrónico para ver el informe completo de contratos de arriendo en Bogotá 2025.</p>
+    <form class="gate-form" id="gateForm" onsubmit="return handleGateSubmit(event)">
+      <input type="email" class="gate-input" id="gateEmail" placeholder="tu@correo.com" required autocomplete="email">
+      <div class="gate-error" id="gateError">Por favor ingresa un correo válido</div>
+      <button type="submit" class="gate-btn" id="gateBtn">Ver informe →</button>
+    </form>
+    <div class="gate-footer">
+      Tu información se usa únicamente para darte acceso al documento.<br>
+      Powered by <strong>InmoLawyer</strong>
+    </div>
+  </div>
+</div>
+
+<div class="content-wrapper" id="contentWrapper">
+
+<!-- ═══ HEADER ═══ -->
+<div class="header">
+  <div class="header-inner">
+    <div class="logo-row">
+      <div class="logo-icon">⚖️</div>
+      <span class="logo-text">InmoLawyer</span>
+      <span class="logo-badge">IA + Ley 820</span>
+    </div>
+    <h1>Estudio de Mercado<br><span class="accent">Contratos de Arriendo</span><br>Bogotá 2025</h1>
+    <p class="subtitle">Análisis de 1.000 contratos de arrendamiento de vivienda urbana procesados con inteligencia artificial, bajo los criterios de la Ley 820 de 2003.</p>
+    <div style="display:inline-flex;align-items:center;gap:8px;background:rgba(234,179,8,0.18);border:1px solid rgba(234,179,8,0.45);border-radius:8px;padding:7px 14px;margin-bottom:18px">
+      <span style="font-size:15px">🧪</span>
+      <span style="font-size:12px;font-weight:700;color:#fde047;letter-spacing:0.3px">ESTUDIO SIMULADO</span>
+      <span style="font-size:11px;color:rgba(253,224,71,0.75)">— Los datos son sintéticos. Este informe muestra cómo se verían los resultados reales de un gremio usando InmoLawyer.</span>
+    </div>
+    <div class="header-meta">
+      <span class="meta-badge">📍 Bogotá D.C.</span>
+      <span class="meta-badge">📊 1.000 contratos</span>
+      <span class="meta-badge">🗓️ Período: 2024–2025</span>
+      <span class="meta-badge">⚖️ Ley 820/2003</span>
+      <span class="meta-badge">🔒 Datos anonimizados</span>
+      <span class="meta-badge">📈 IPC ref: 9.28%</span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ KPI CARDS ═══ -->
+<div class="kpi-wrapper">
+  <div class="kpi-grid" id="kpiGrid"></div>
+</div>
+
+<div style="max-width:1100px;margin:20px auto 0;padding:0 24px;display:flex;justify-content:flex-end">
+  <button id="downloadPptBtn" onclick="downloadPPT()" style="background:#1e293b;color:white;border:none;padding:11px 22px;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;display:flex;align-items:center;gap:8px;box-shadow:0 2px 8px rgba(0,0,0,0.15)">
+    <span style="font-size:16px">⬇️</span> Descargar PPT (13 diapositivas)
+  </button>
+</div>
+
+<div class="container">
+
+<!-- ══════════════════════════════════════
+     SECCIÓN 1 — DISTRIBUCIÓN POR ESTRATO
+════════════════════════════════════════ -->
+<section>
+  <div class="section-label">Composición de la muestra</div>
+  <div class="section-title">Distribución por Estrato Socioeconómico</div>
+  <div class="section-sub">Muestra representativa de los 6 estratos de Bogotá según distribución real (DANE 2024).</div>
+  <div class="chart-row cols-1-2">
+    <div class="chart-card">
+      <h3>Contratos por estrato</h3>
+      <div class="card-desc">Distribución porcentual de la muestra</div>
+      <canvas id="donutEstrato" height="230"></canvas>
+    </div>
+    <div class="chart-card">
+      <h3>Resumen por estrato</h3>
+      <div class="card-desc">Arriendo promedio, score de riesgo y porcentaje con incremento ilegal</div>
+      <table>
+        <thead>
+          <tr><th>Estrato</th><th>Contratos</th><th>Arriendo prom.</th><th>Score riesgo</th><th>Excede IPC</th></tr>
+        </thead>
+        <tbody id="tablaEstratoBody"></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════
+     SECCIÓN 2 — CUMPLIMIENTO IPC
+════════════════════════════════════════ -->
+<section>
+  <div class="section-label">Análisis de incrementos — renovaciones 2025</div>
+  <div class="section-title">Cumplimiento del IPC en Contratos con Renovación</div>
+  <div class="section-sub">IPC 2025 = 9.28%. Artículo 20, Ley 820/2003: el incremento máximo en el canon no puede superar el IPC del año anterior.</div>
+
+  <div id="highlightIPC" class="highlight-box"></div>
+
+  <div class="chart-row cols-2">
+    <div class="chart-card">
+      <h3>Distribución global de cumplimiento IPC</h3>
+      <div class="card-desc">Todos los contratos de la muestra</div>
+      <canvas id="ipcPie" height="220"></canvas>
+    </div>
+    <div class="chart-card">
+      <h3>% que excede el IPC — por estrato</h3>
+      <div class="card-desc">Estratos bajos presentan mayor incidencia de cobros ilegales</div>
+      <canvas id="ipcBarEstrato" height="220"></canvas>
+    </div>
+  </div>
+  <div class="insight-box" id="insightIPC" style="margin-top:16px"></div>
+</section>
+
+<!-- ══════════════════════════════════════
+     SECCIÓN 3 — LOCALIDADES
+════════════════════════════════════════ -->
+<section>
+  <div class="section-label">Análisis geográfico</div>
+  <div class="section-title">Riesgo Legal por Localidad</div>
+  <div class="section-sub">Score de riesgo promedio y porcentaje de contratos en zona de alto riesgo según ubicación del inmueble.</div>
+  <div class="chart-row cols-2">
+    <div class="chart-card">
+      <h3>Top 10 — Score de riesgo por localidad</h3>
+      <div class="card-desc">Mayor score = más alertas legales detectadas</div>
+      <canvas id="barLocalidades" height="290"></canvas>
+    </div>
+    <div class="chart-card">
+      <h3>Detalle por localidad</h3>
+      <div class="card-desc">19 localidades de Bogotá con muestra representativa</div>
+      <div style="max-height:320px;overflow-y:auto">
+        <table>
+          <thead><tr><th>Localidad</th><th>Contratos</th><th>Score prom.</th><th>% Riesgo alto</th></tr></thead>
+          <tbody id="tablaLocalidadesBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════
+     SECCIÓN 4 — ALERTAS LEGALES
+════════════════════════════════════════ -->
+<section>
+  <div class="section-label">Cláusulas problemáticas detectadas</div>
+  <div class="section-title">Alertas Legales Más Frecuentes</div>
+  <div class="section-sub">Frecuencia de cada tipo de irregularidad detectada por IA en los 1.000 contratos.</div>
+  <div class="chart-row cols-2">
+    <div class="chart-card">
+      <h3>Top 10 alertas — frecuencia</h3>
+      <div class="card-desc">Número de contratos afectados por cada irregularidad</div>
+      <canvas id="barAlertas" height="290"></canvas>
+    </div>
+    <div class="chart-card">
+      <h3>Distribución por severidad</h3>
+      <div class="card-desc">Alertas clasificadas en alto, medio y bajo riesgo</div>
+      <canvas id="pieAlertas" height="200"></canvas>
+      <div id="alertasSummary" style="margin-top:16px"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════
+     SECCIÓN 5 — SCORE DE RIESGO
+════════════════════════════════════════ -->
+<section>
+  <div class="section-label">Indicador compuesto de riesgo legal</div>
+  <div class="section-title">Distribución del Score de Riesgo</div>
+  <div class="section-sub">Escala 0–100 · Verde (bajo): 0–39 · Amarillo (medio): 40–69 · Rojo (alto): 70–100</div>
+  <div class="chart-row cols-2">
+    <div class="chart-card">
+      <h3>Histograma — todos los contratos</h3>
+      <div class="card-desc">Distribución por deciles de riesgo</div>
+      <canvas id="histoScore" height="240"></canvas>
+      <div class="zone-pills" id="scoreZonas"></div>
+    </div>
+    <div class="chart-card">
+      <h3>Score promedio por estrato</h3>
+      <div class="card-desc">Inversamente correlacionado con el nivel socioeconómico</div>
+      <canvas id="barScoreEstrato" height="240"></canvas>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════
+     SECCIÓN 6 — CARTERA Y SOBRECOBRO
+════════════════════════════════════════ -->
+<section>
+  <div class="section-label">Impacto económico</div>
+  <div class="section-title">Cartera Analizada y Estimado de Sobrecobros</div>
+  <div class="section-sub">Valor mensual gestionado y estimado del impacto económico de los incrementos ilegales detectados.</div>
+  <div class="chart-row cols-2">
+    <div class="chart-card">
+      <h3>Arriendo promedio por estrato (COP/mes)</h3>
+      <div class="card-desc">Valor mensual del canon de arrendamiento</div>
+      <canvas id="barArriendoEstrato" height="240"></canvas>
+    </div>
+    <div class="chart-card">
+      <h3>Impacto económico del sobrecobro</h3>
+      <div class="card-desc">Proyección mensual y anual de los incrementos ilegales detectados</div>
+      <div id="sobrecobroSummary"></div>
+    </div>
+  </div>
+  <div class="disclaimer">
+    🧪 <strong>Estudio simulado — datos sintéticos:</strong> Este informe muestra cómo se verían los resultados de un gremio real usando InmoLawyer. Los datos son producto de una simulación estadística calibrada al mercado bogotano (fuentes de referencia: DANE, Lonja de Propiedad Raíz, SIC) y <strong>no corresponden a contratos, personas ni inmuebles reales</strong>. InmoLawyer utiliza IA como apoyo al análisis jurídico — no reemplaza el asesoramiento legal profesional.
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════
+     SECCIÓN 7 — MAPA BOGOTÁ
+════════════════════════════════════════ -->
+<section>
+  <div class="section-label">Distribución geográfica</div>
+  <div class="section-title">Mapa de Contratos — 1.000 Inmuebles en Bogotá</div>
+  <div class="section-sub">Ubicación georeferenciada de los contratos analizados en las 19 localidades de Bogotá D.C. Haz clic en cualquier punto para ver detalles del contrato.</div>
+  <div class="map-filters">
+    <button class="map-filter-btn" id="mapBtnAll"  onclick="filterMap('all')">📍 Todos los contratos</button>
+    <button class="map-filter-btn" id="mapBtnAlto" onclick="filterMap('alto')" style="border-color:#dc2626;color:#dc2626">🔴 Alto riesgo</button>
+    <button class="map-filter-btn" id="mapBtnMedio" onclick="filterMap('medio')" style="border-color:#d97706;color:#d97706">🟡 Riesgo medio</button>
+    <button class="map-filter-btn" id="mapBtnBajo" onclick="filterMap('bajo')" style="border-color:#16a34a;color:#16a34a">🟢 Bajo riesgo</button>
+  </div>
+  <div id="bogotaMap"></div>
+  <div class="chart-row cols-2" style="margin-top:20px">
+    <div class="chart-card">
+      <h3>Top localidades — mayor concentración</h3>
+      <div class="card-desc">Número de contratos y score promedio de las 8 localidades con más análisis</div>
+      <table>
+        <thead><tr><th>Localidad</th><th>Contratos</th><th>% del total</th><th>Score prom.</th></tr></thead>
+        <tbody id="tablaGeoBody"></tbody>
+      </table>
+    </div>
+    <div class="chart-card">
+      <h3>Densidad de riesgo — top 8 localidades</h3>
+      <div class="card-desc">Contratos en alto riesgo vs. riesgo medio/bajo por localidad</div>
+      <canvas id="mapBarChart" height="250"></canvas>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════
+     SECCIÓN 8 — COMPARATIVA PRECIOS PORTAL
+════════════════════════════════════════ -->
+<section>
+  <div class="section-label">Benchmarking de mercado</div>
+  <div class="section-title">Canon Contractual vs. Precios en Portales Inmobiliarios</div>
+  <div class="section-sub">Comparación entre el canon mensual pagado en contratos vigentes y los precios de publicaciones actuales en Finca Raíz y Metrocuadrado (promedio dic. 2025).</div>
+  <div class="chart-row cols-2">
+    <div class="chart-card">
+      <h3>Canon contractual vs. portal — por estrato</h3>
+      <div class="card-desc">En COP/mes · <span style="color:#16a34a;font-weight:600">■ Canon contractual</span> · <span style="color:#2563eb;font-weight:600">■ Precio portal (FR/M2)</span></div>
+      <canvas id="barPortal" height="280"></canvas>
+    </div>
+    <div class="chart-card">
+      <h3>% desviación respecto al portal</h3>
+      <div class="card-desc">Positivo (+) = contrato SOBRE precio de mercado · Negativo (−) = contrato bajo mercado</div>
+      <canvas id="barDesviacion" height="200"></canvas>
+      <div id="portalInsight" style="margin-top:16px"></div>
+    </div>
+  </div>
+  <div class="chart-row" style="margin-top:20px">
+    <div class="chart-card">
+      <h3>Localidades con mayor sobreprecio vs. portal</h3>
+      <div class="card-desc">Canon contractual vigente comparado con publicaciones actuales en portales. Positivo = arrendatario paga por encima del mercado actual.</div>
+      <table>
+        <thead>
+          <tr><th>Localidad</th><th>Canon promedio</th><th>Precio portal</th><th>Desviación</th><th>% Riesgo alto</th></tr>
+        </thead>
+        <tbody id="tablaPortalBody"></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════
+     SECCIÓN 9 — PREGUNTAS FRECUENTES
+════════════════════════════════════════ -->
+<section>
+  <div class="section-label">Consultas de los afiliados</div>
+  <div class="section-title">Las 10 Preguntas Más Frecuentes</div>
+  <div class="section-sub">Preguntas recurrentes detectadas en los contratos analizados, ordenadas por frecuencia de aparición en la muestra.</div>
+  <div class="faq-grid" id="faqGrid"></div>
+</section>
+
+<!-- ══════════════════════════════════════
+     CTA — PAQUETE CORPORATE
+════════════════════════════════════════ -->
+<div class="cta-section">
+  <h2>¿Qué puede hacer su gremio<br>con <span>InmoLawyer Corporate</span>?</h2>
+  <p>Ofrezca a todos sus afiliados la misma tecnología de análisis que generó este informe — en segundos, para cada contrato.</p>
+  <div class="benefits-grid">
+    <div class="benefit-card">
+      <div class="bi">📊</div>
+      <h4>Panel del gremio</h4>
+      <p>Dashboard centralizado con análisis de todos los contratos de sus afiliados. Reportes mensuales automáticos como este informe.</p>
+    </div>
+    <div class="benefit-card">
+      <div class="bi">⚡</div>
+      <h4>Análisis en 30 segundos</h4>
+      <p>Cada afiliado sube su contrato y recibe score de riesgo, alertas legales y recomendaciones — sin necesidad de abogado.</p>
+    </div>
+    <div class="benefit-card">
+      <div class="bi">⚖️</div>
+      <h4>Cumplimiento Ley 820</h4>
+      <p>Verificación automática de cláusulas ilegales, incrementos fuera del IPC y obligaciones del arrendador y arrendatario.</p>
+    </div>
+  </div>
+  <button class="cta-btn" onclick="window.location.href='mailto:hola@inmolawyer.co?subject=Interés Paquete Corporate InmoLawyer'">
+    Solicitar demostración corporativa →
+  </button>
+  <div class="cta-contact">hola@inmolawyer.co &nbsp;·&nbsp; inmolawyer.surge.sh &nbsp;·&nbsp; Bogotá, Colombia</div>
+</div>
+
+</div><!-- /container -->
+
+<div class="footer">
+  Generado por <strong>InmoLawyer</strong> &nbsp;·&nbsp; Análisis de contratos con IA &nbsp;·&nbsp; Colombia 2025 &nbsp;·&nbsp; 🧪 Estudio simulado — datos sintéticos
+</div>
+
+<!-- ═══════════════════════════════════════════════════
+     JAVASCRIPT — SIMULACIÓN + GRÁFICOS
+═══════════════════════════════════════════════════ -->
+<script>
+// ─────────────────────────────────────────
+// PRNG con semilla (mulberry32) — resultados reproducibles
+// ─────────────────────────────────────────
+function mkRand(seed) {
+  return function() {
+    seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+    let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+const r = mkRand(20240315);
+const rInt  = (a, b) => Math.floor(r() * (b - a + 1)) + a;
+const rFl   = (a, b) => r() * (b - a) + a;
+const pick  = arr => arr[Math.floor(r() * arr.length)];
+function gauss(mu, sigma) {
+  let u, v;
+  do { u = r(); } while (!u);
+  do { v = r(); } while (!v);
+  return mu + sigma * Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+}
+
+// ─────────────────────────────────────────
+// CONFIGURACIÓN
+// ─────────────────────────────────────────
+const IPC = 9.28;
+
+const ESTRATOS = [
+  { id:1, label:'Estrato 1', pct:.08, rMin:400000,  rMax:700000,   mu:73, sd:11, col:'#dc2626' },
+  { id:2, label:'Estrato 2', pct:.22, rMin:700000,  rMax:1100000,  mu:65, sd:12, col:'#f97316' },
+  { id:3, label:'Estrato 3', pct:.30, rMin:1100000, rMax:2000000,  mu:55, sd:13, col:'#eab308' },
+  { id:4, label:'Estrato 4', pct:.20, rMin:2000000, rMax:3500000,  mu:44, sd:13, col:'#22c55e' },
+  { id:5, label:'Estrato 5', pct:.12, rMin:3500000, rMax:6000000,  mu:36, sd:11, col:'#16a34a' },
+  { id:6, label:'Estrato 6', pct:.08, rMin:6000000, rMax:15000000, mu:29, sd:10, col:'#15803d' },
+];
+
+const LOCALIDADES = [
+  { n:'Ciudad Bolívar',     e:[1,1,2,2] },     { n:'Usme',              e:[1,1,2] },
+  { n:'San Cristóbal',      e:[1,2,2,3] },     { n:'Rafael Uribe Uribe',e:[1,2,3] },
+  { n:'Bosa',               e:[2,2,2,3] },     { n:'Kennedy',           e:[2,2,3,3] },
+  { n:'Tunjuelito',         e:[2,3,3] },       { n:'Santa Fe',          e:[1,2,3] },
+  { n:'Los Mártires',       e:[2,3,3] },       { n:'Antonio Nariño',    e:[3,3] },
+  { n:'Puente Aranda',      e:[3,3,4] },       { n:'Engativá',          e:[3,3,4] },
+  { n:'Fontibón',           e:[3,4,4] },       { n:'Barrios Unidos',    e:[3,4,4,5] },
+  { n:'Suba',               e:[3,4,5,5] },     { n:'Teusaquillo',       e:[4,4,5] },
+  { n:'Chapinero',          e:[4,5,5,6] },     { n:'Usaquén',           e:[4,5,6,6] },
+  { n:'La Candelaria',      e:[1,2,3] },
+];
+
+const ALERTAS = [
+  { txt:'Sin inventario detallado del inmueble',               freq:.41 },
+  { txt:'Sin cláusula de restitución del inmueble',            freq:.35 },
+  { txt:'Incremento superior al IPC (cobro ilegal)',           freq:.27 },
+  { txt:'Depósito excede dos meses de arriendo',               freq:.22 },
+  { txt:'Cobro de servicios públicos no permitido',            freq:.19 },
+  { txt:'Inmueble sin paz y salvo de administración',          freq:.18 },
+  { txt:'Penalidades desproporcionadas por incumplimiento',    freq:.16 },
+  { txt:'Obligaciones indebidas al arrendatario',              freq:.13 },
+  { txt:'Contrato sin término de duración definido',           freq:.09 },
+  { txt:'Cláusula de acceso al inmueble no pactada',           freq:.08 },
+];
+
+// ─────────────────────────────────────────
+// GENERAR 1.000 CONTRATOS
+// ─────────────────────────────────────────
+const contratos = [];
+for (let i = 0; i < 1000; i++) {
+  // Estrato
+  let rv = r(), acc = 0, est = ESTRATOS[0];
+  for (const e of ESTRATOS) { acc += e.pct; if (rv <= acc) { est = e; break; } }
+
+  // Localidad (según estrato)
+  const locFit = LOCALIDADES.filter(l => l.e.includes(est.id));
+  const loc = pick(locFit.length ? locFit : LOCALIDADES);
+
+  // Arriendo
+  const arriendo = Math.round(rFl(est.rMin, est.rMax) / 1000) * 1000;
+
+  // Score de riesgo
+  const score = Math.min(100, Math.max(4, Math.round(gauss(est.mu, est.sd))));
+
+  // IPC compliance
+  const rIPC = r();
+  let ipcSt, ipcVal;
+  if      (rIPC < .10) { ipcSt = 'sin_renovar'; ipcVal = 0; }
+  else if (rIPC < .15) { ipcSt = 'bajo_ipc';    ipcVal = rFl(2, 7); }
+  else if (rIPC < .73) { ipcSt = 'correcto';    ipcVal = rFl(7, 9.28); }
+  else                 { ipcSt = 'excede';       ipcVal = rFl(10.5, 28); }
+
+  // Alertas
+  const nAlertas = Math.max(1, Math.round(score / 14) + rInt(0, 2));
+  const nAlto    = Math.round(nAlertas * 0.38);
+
+  contratos.push({ est, loc: loc.n, arriendo, score, ipcSt, ipcVal: +ipcVal.toFixed(2), nAlertas, nAlto });
+}
+
+// ─────────────────────────────────────────
+// ESTADÍSTICAS
+// ─────────────────────────────────────────
+const totalCartera   = contratos.reduce((s,c) => s + c.arriendo, 0);
+const exceden        = contratos.filter(c => c.ipcSt === 'excede');
+const pctExceden     = (exceden.length / 10).toFixed(1);
+const avgScore       = (contratos.reduce((s,c) => s + c.score, 0) / 1000).toFixed(1);
+const avgArriendo    = Math.round(totalCartera / 1000 / 1000) * 1000;
+
+const sobrecobro     = exceden.reduce((s,c) => s + c.arriendo * (c.ipcVal - IPC) / 100, 0);
+
+const statEst = ESTRATOS.map(e => {
+  const arr = contratos.filter(c => c.est.id === e.id);
+  return {
+    ...e,
+    cnt:    arr.length,
+    avgR:   arr.reduce((s,c) => s + c.arriendo, 0) / arr.length,
+    avgSc:  arr.reduce((s,c) => s + c.score, 0) / arr.length,
+    pctEx:  arr.filter(c => c.ipcSt === 'excede').length / arr.length * 100,
+  };
+});
+
+const locMap = {};
+contratos.forEach(c => { if (!locMap[c.loc]) locMap[c.loc] = []; locMap[c.loc].push(c); });
+const statLoc = Object.entries(locMap).map(([n, arr]) => ({
+  n, cnt: arr.length,
+  avgSc: arr.reduce((s,c) => s + c.score, 0) / arr.length,
+  pctAlto: arr.filter(c => c.score >= 70).length / arr.length * 100,
+})).sort((a,b) => b.avgSc - a.avgSc);
+
+const histoBins = Array(10).fill(0);
+contratos.forEach(c => histoBins[Math.min(9, Math.floor(c.score / 10))]++);
+
+const zonaBajo  = contratos.filter(c => c.score < 40).length;
+const zonaMedio = contratos.filter(c => c.score >= 40 && c.score < 70).length;
+const zonaAlto  = contratos.filter(c => c.score >= 70).length;
+
+const alertaCounts = ALERTAS.map(a => ({ ...a, cnt: Math.round(a.freq * 1000) }))
+                            .sort((a,b) => b.cnt - a.cnt);
+
+// ─────────────────────────────────────────
+// FORMATEO
+// ─────────────────────────────────────────
+const cop = n => new Intl.NumberFormat('es-CO', { style:'currency', currency:'COP', maximumFractionDigits:0 }).format(n);
+const fmtB = n => n >= 1e9 ? (n/1e9).toFixed(2)+' B' : (n/1e6).toFixed(0)+' M';
+
+// ─────────────────────────────────────────
+// KPI CARDS
+// ─────────────────────────────────────────
+document.getElementById('kpiGrid').innerHTML = `
+  <div class="kpi-card">
+    <div class="kpi-icon green">📋</div>
+    <div class="kpi-value">1.000</div>
+    <div class="kpi-label">Contratos analizados</div>
+    <div class="kpi-sub good">19 localidades de Bogotá</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-icon blue">💰</div>
+    <div class="kpi-value">$${fmtB(totalCartera)}</div>
+    <div class="kpi-label">Valor cartera / mes (COP)</div>
+    <div class="kpi-sub good">Prom. ${cop(avgArriendo)} / contrato</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-icon red">⚠️</div>
+    <div class="kpi-value">${pctExceden}%</div>
+    <div class="kpi-label">Exceden IPC — cobro ilegal</div>
+    <div class="kpi-sub bad">${exceden.length} contratos en infracción</div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-icon yellow">📊</div>
+    <div class="kpi-value">${avgScore}</div>
+    <div class="kpi-label">Score de riesgo promedio</div>
+    <div class="kpi-sub bad">${zonaAlto} contratos en zona roja</div>
+  </div>
+`;
+
+// ─────────────────────────────────────────
+// TABLA ESTRATO
+// ─────────────────────────────────────────
+document.getElementById('tablaEstratoBody').innerHTML = statEst.map(e => {
+  const rc = e.avgSc >= 70 ? 'risk-high' : e.avgSc >= 40 ? 'risk-mid' : 'risk-low';
+  const bc = e.pctEx > 30 ? 'red' : e.pctEx > 18 ? 'yellow' : 'green';
+  return `<tr>
+    <td><strong>${e.label}</strong></td>
+    <td>${e.cnt}</td>
+    <td>${cop(Math.round(e.avgR/1000)*1000)}</td>
+    <td><span class="${rc}">${e.avgSc.toFixed(1)}</span></td>
+    <td><span class="badge ${bc}">${e.pctEx.toFixed(1)}%</span></td>
+  </tr>`;
+}).join('');
+
+// ─────────────────────────────────────────
+// HIGHLIGHT IPC
+// ─────────────────────────────────────────
+document.getElementById('highlightIPC').innerHTML = `
+  <div><span class="big-num">${pctExceden}%</span>
+  <span style="font-size:20px;font-weight:800;color:#991b1b;"> de contratos presentan incrementos superiores al IPC legal</span></div>
+  <p>En la muestra analizada, <strong>${exceden.length} de 1.000 contratos</strong> cobran incrementos que superan el IPC del 9.28% vigente para 2025. Esto constituye una violación directa al Artículo 20 de la Ley 820/2003 y puede derivar en sanciones para el arrendador. El sobrecobro total estimado asciende a <strong>${cop(Math.round(sobrecobro/1000)*1000)}/mes</strong>.</p>
+`;
+document.getElementById('insightIPC').innerHTML = `
+  <p>💡 <strong>Hallazgo clave:</strong> Los contratos de estrato 1 y 2 presentan la mayor incidencia de cobros ilegales
+  (${statEst[0].pctEx.toFixed(1)}% y ${statEst[1].pctEx.toFixed(1)}% respectivamente), concentrando la mayor vulnerabilidad de arrendatarios
+  de bajos ingresos. InmoLawyer detecta esta irregularidad automáticamente en cada contrato analizado.</p>
+`;
+
+// ─────────────────────────────────────────
+// TABLA LOCALIDADES
+// ─────────────────────────────────────────
+document.getElementById('tablaLocalidadesBody').innerHTML = statLoc.map(l => {
+  const rc = l.avgSc >= 70 ? 'risk-high' : l.avgSc >= 40 ? 'risk-mid' : 'risk-low';
+  const bw = Math.round(l.avgSc * 0.75);
+  const bc = l.avgSc >= 70 ? '#dc2626' : l.avgSc >= 40 ? '#d97706' : '#16a34a';
+  return `<tr>
+    <td>${l.n}</td><td>${l.cnt}</td>
+    <td><span class="risk-bar" style="width:${bw}px;background:${bc}"></span><span class="${rc}">${l.avgSc.toFixed(1)}</span></td>
+    <td>${l.pctAlto.toFixed(1)}%</td>
+  </tr>`;
+}).join('');
+
+// ─────────────────────────────────────────
+// ALERTAS SUMMARY
+// ─────────────────────────────────────────
+const totalAltoAlertas  = Math.round(contratos.reduce((s,c)=>s+c.nAlto,0)/1000*10)/10;
+const totalMedioAlertas = Math.round((contratos.reduce((s,c)=>s+c.nAlertas,0)/1000 - totalAltoAlertas)*10)/10;
+document.getElementById('alertasSummary').innerHTML = `
+  <div style="display:flex;flex-direction:column;gap:8px">
+    <div style="display:flex;justify-content:space-between;padding:8px 12px;background:#fee2e2;border-radius:8px">
+      <span style="font-size:12px;color:#991b1b;font-weight:600">🔴 Alertas alto riesgo / contrato</span>
+      <span style="font-size:17px;font-weight:800;color:#dc2626">${totalAltoAlertas} prom.</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;padding:8px 12px;background:#fef3c7;border-radius:8px">
+      <span style="font-size:12px;color:#92400e;font-weight:600">🟡 Alertas riesgo medio / contrato</span>
+      <span style="font-size:17px;font-weight:800;color:#d97706">${totalMedioAlertas} prom.</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;padding:8px 12px;background:#f0fdf4;border-radius:8px">
+      <span style="font-size:12px;color:#14532d;font-weight:600">🟢 Alertas bajo riesgo / contrato</span>
+      <span style="font-size:17px;font-weight:800;color:#16a34a">1.2 prom.</span>
+    </div>
+  </div>
+`;
+
+// ─────────────────────────────────────────
+// SCORE ZONAS
+// ─────────────────────────────────────────
+document.getElementById('scoreZonas').innerHTML = `
+  <div class="zone-pill" style="background:#f0fdf4">
+    <div class="zn" style="color:#16a34a">${zonaBajo}</div>
+    <div class="zl" style="color:#14532d">Bajo riesgo<span class="zs">(score 0–39)</span></div>
+  </div>
+  <div class="zone-pill" style="background:#fef3c7">
+    <div class="zn" style="color:#d97706">${zonaMedio}</div>
+    <div class="zl" style="color:#92400e">Riesgo medio<span class="zs">(score 40–69)</span></div>
+  </div>
+  <div class="zone-pill" style="background:#fee2e2">
+    <div class="zn" style="color:#dc2626">${zonaAlto}</div>
+    <div class="zl" style="color:#991b1b">Riesgo alto<span class="zs">(score 70–100)</span></div>
+  </div>
+`;
+
+// ─────────────────────────────────────────
+// SOBRECOBRO SUMMARY
+// ─────────────────────────────────────────
+document.getElementById('sobrecobroSummary').innerHTML = `
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+    <div style="background:var(--green-bg);border-radius:12px;padding:16px;text-align:center">
+      <div style="font-size:10px;color:var(--green);font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:3px">Cartera total / mes</div>
+      <div style="font-size:21px;font-weight:800;color:var(--slate)">${cop(Math.round(totalCartera/1000000)*1000000)}</div>
+    </div>
+    <div style="background:#fee2e2;border-radius:12px;padding:16px;text-align:center">
+      <div style="font-size:10px;color:var(--red);font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:3px">Sobrecobro estimado / mes</div>
+      <div style="font-size:21px;font-weight:800;color:var(--red)">${cop(Math.round(sobrecobro/1000)*1000)}</div>
+    </div>
+    <div style="background:#eff6ff;border-radius:12px;padding:16px;text-align:center">
+      <div style="font-size:10px;color:#2563eb;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:3px">Arriendo promedio global</div>
+      <div style="font-size:21px;font-weight:800;color:var(--slate)">${cop(avgArriendo)}</div>
+    </div>
+    <div style="background:#fef3c7;border-radius:12px;padding:16px;text-align:center">
+      <div style="font-size:10px;color:var(--yellow);font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:3px">Sobrecobro anual estimado</div>
+      <div style="font-size:21px;font-weight:800;color:var(--yellow)">${cop(Math.round(sobrecobro*12/1000000)*1000000)}</div>
+    </div>
+  </div>
+  <div class="insight-box">
+    <p>💡 Los <strong>${exceden.length} contratos</strong> con incremento ilegal generan un sobrecobro acumulado de
+    <strong>${cop(Math.round(sobrecobro/1000)*1000)}/mes</strong> — equivalente a
+    <strong>${cop(Math.round(sobrecobro*12/1000000)*1000000)} anuales</strong>.
+    InmoLawyer identifica esta infracción automáticamente en cada análisis.</p>
+  </div>
+`;
+
+// ─────────────────────────────────────────
+// CHART.JS — configuración global
+// ─────────────────────────────────────────
+Chart.defaults.font.family = 'Inter';
+Chart.defaults.plugins.legend.labels.boxWidth = 12;
+const gridColor = '#f1f5f9';
+
+// 1 · Donut estrato
+new Chart('donutEstrato', {
+  type: 'doughnut',
+  data: {
+    labels: ESTRATOS.map(e => e.label),
+    datasets: [{ data: statEst.map(e => e.cnt), backgroundColor: ESTRATOS.map(e => e.col), borderWidth: 2, borderColor: '#fff' }]
+  },
+  options: {
+    cutout: '62%',
+    plugins: {
+      legend: { position: 'bottom', labels: { padding: 14, font: { size: 11 } } },
+      tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.raw} contratos (${(ctx.raw/10).toFixed(0)}%)` } }
+    }
+  }
+});
+
+// 2 · IPC pie
+new Chart('ipcPie', {
+  type: 'doughnut',
+  data: {
+    labels: ['Correcto (≤ IPC)', 'Excede IPC (ilegal)', 'Sin renovar', 'Bajo IPC (favorable)'],
+    datasets: [{
+      data: [
+        contratos.filter(c=>c.ipcSt==='correcto').length,
+        contratos.filter(c=>c.ipcSt==='excede').length,
+        contratos.filter(c=>c.ipcSt==='sin_renovar').length,
+        contratos.filter(c=>c.ipcSt==='bajo_ipc').length,
+      ],
+      backgroundColor: ['#16a34a','#dc2626','#94a3b8','#2563eb'],
+      borderWidth: 2, borderColor: '#fff'
+    }]
+  },
+  options: {
+    cutout: '58%',
+    plugins: {
+      legend: { position: 'bottom', labels: { padding: 10, font: { size: 11 } } },
+      tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.raw} (${(ctx.raw/10).toFixed(0)}%)` } }
+    }
+  }
+});
+
+// 3 · IPC bar por estrato
+new Chart('ipcBarEstrato', {
+  type: 'bar',
+  data: {
+    labels: ESTRATOS.map(e => e.label),
+    datasets: [{
+      data: statEst.map(e => +e.pctEx.toFixed(1)),
+      backgroundColor: statEst.map(e => e.pctEx > 30 ? '#dc2626' : e.pctEx > 18 ? '#f97316' : '#22c55e'),
+      borderRadius: 6,
+    }]
+  },
+  options: {
+    plugins: { legend: { display: false } },
+    scales: { y: { beginAtZero:true, max:50, ticks:{ callback:v=>v+'%' }, grid:{ color:gridColor } }, x:{ grid:{ display:false } } }
+  }
+});
+
+// 4 · Bar localidades
+const top10 = statLoc.slice(0, 10);
+new Chart('barLocalidades', {
+  type: 'bar',
+  data: {
+    labels: top10.map(l => l.n),
+    datasets: [{
+      data: top10.map(l => +l.avgSc.toFixed(1)),
+      backgroundColor: top10.map(l => l.avgSc >= 70 ? '#dc2626' : l.avgSc >= 40 ? '#f97316' : '#16a34a'),
+      borderRadius: 5,
+    }]
+  },
+  options: {
+    indexAxis: 'y',
+    plugins: { legend: { display: false } },
+    scales: { x: { beginAtZero:true, max:100, grid:{ color:gridColor } }, y:{ grid:{ display:false }, ticks:{ font:{ size:11 } } } }
+  }
+});
+
+// 5 · Bar alertas
+new Chart('barAlertas', {
+  type: 'bar',
+  data: {
+    labels: alertaCounts.map(a => a.txt.length > 42 ? a.txt.slice(0,39)+'…' : a.txt),
+    datasets: [{
+      data: alertaCounts.map(a => a.cnt),
+      backgroundColor: ['#dc2626','#ef4444','#f97316','#f59e0b','#eab308','#22c55e','#16a34a','#0ea5e9','#2563eb','#7c3aed'],
+      borderRadius: 5,
+    }]
+  },
+  options: {
+    indexAxis: 'y',
+    plugins: { legend: { display: false } },
+    scales: { x: { beginAtZero:true, max:500, grid:{ color:gridColor } }, y:{ grid:{ display:false }, ticks:{ font:{ size:11 } } } }
+  }
+});
+
+// 6 · Pie alertas severidad
+const totalAltos = Math.round(contratos.reduce((s,c)=>s+c.nAlto,0));
+const totalMedios = Math.round(contratos.reduce((s,c)=>s+(c.nAlertas-c.nAlto),0));
+new Chart('pieAlertas', {
+  type: 'doughnut',
+  data: {
+    labels: ['Alto riesgo', 'Riesgo medio', 'Bajo riesgo'],
+    datasets: [{ data: [totalAltos, totalMedios, Math.round(1000*1.2)], backgroundColor: ['#dc2626','#d97706','#16a34a'], borderWidth:2, borderColor:'#fff' }]
+  },
+  options: {
+    cutout: '55%',
+    plugins: { legend: { position:'bottom', labels:{ font:{ size:11 }, padding:12 } } }
+  }
+});
+
+// 7 · Histograma scores
+new Chart('histoScore', {
+  type: 'bar',
+  data: {
+    labels: ['0–9','10–19','20–29','30–39','40–49','50–59','60–69','70–79','80–89','90–100'],
+    datasets: [{
+      data: histoBins,
+      backgroundColor: ['#16a34a','#16a34a','#16a34a','#16a34a','#d97706','#d97706','#d97706','#dc2626','#dc2626','#dc2626'],
+      borderRadius: 5,
+    }]
+  },
+  options: {
+    plugins: { legend: { display: false } },
+    scales: { y: { beginAtZero:true, grid:{ color:gridColor } }, x:{ grid:{ display:false } } }
+  }
+});
+
+// 8 · Bar score por estrato
+new Chart('barScoreEstrato', {
+  type: 'bar',
+  data: {
+    labels: ESTRATOS.map(e => e.label),
+    datasets: [{
+      data: statEst.map(e => +e.avgSc.toFixed(1)),
+      backgroundColor: statEst.map(e => e.avgSc >= 70 ? '#dc2626' : e.avgSc >= 40 ? '#d97706' : '#16a34a'),
+      borderRadius: 6,
+    }]
+  },
+  options: {
+    plugins: { legend: { display: false } },
+    scales: { y:{ beginAtZero:true, max:100, grid:{ color:gridColor } }, x:{ grid:{ display:false } } }
+  }
+});
+
+// 9 · Bar arriendo por estrato
+new Chart('barArriendoEstrato', {
+  type: 'bar',
+  data: {
+    labels: ESTRATOS.map(e => e.label),
+    datasets: [{
+      data: statEst.map(e => Math.round(e.avgR/1000)*1000),
+      backgroundColor: ESTRATOS.map(e => e.col),
+      borderRadius: 6,
+    }]
+  },
+  options: {
+    plugins: { legend: { display: false } },
+    scales: {
+      y: {
+        beginAtZero: true, grid: { color: gridColor },
+        ticks: { callback: v => v >= 1e6 ? (v/1e6).toFixed(1)+'M' : (v/1e3).toFixed(0)+'k' }
+      },
+      x: { grid: { display: false } }
+    }
+  }
+});
+
+// ─────────────────────────────────────────────────────────────
+// SECCIÓN 7 — MAPA BOGOTÁ (Leaflet.js + OpenStreetMap)
+// ─────────────────────────────────────────────────────────────
+
+// Centros y radios de dispersión para cada localidad (lat, lng, radio_grados)
+const LOC_COORDS = {
+  'Ciudad Bolívar':     [4.465,-74.155,0.021], 'Usme':               [4.490,-74.085,0.023],
+  'San Cristóbal':      [4.565,-74.068,0.015], 'Rafael Uribe Uribe': [4.545,-74.095,0.014],
+  'Bosa':               [4.612,-74.192,0.019], 'Kennedy':            [4.626,-74.163,0.023],
+  'Tunjuelito':         [4.566,-74.125,0.013], 'Santa Fe':           [4.598,-74.076,0.012],
+  'Los Mártires':       [4.607,-74.090,0.010], 'Antonio Nariño':     [4.586,-74.104,0.010],
+  'Puente Aranda':      [4.622,-74.118,0.015], 'Engativá':           [4.697,-74.122,0.021],
+  'Fontibón':           [4.669,-74.148,0.018], 'Barrios Unidos':     [4.663,-74.083,0.013],
+  'Suba':               [4.742,-74.089,0.026], 'Teusaquillo':        [4.644,-74.100,0.013],
+  'Chapinero':          [4.645,-74.057,0.015], 'Usaquén':            [4.721,-74.040,0.023],
+  'La Candelaria':      [4.597,-74.075,0.008],
+};
+
+// PRNG independiente para coordenadas — no perturba los datos ya generados
+const rCoord = mkRand(20241001);
+contratos.forEach(c => {
+  const cc = LOC_COORDS[c.loc] || [4.620,-74.090,0.018];
+  const angle = rCoord() * 2 * Math.PI;
+  const dist  = Math.sqrt(rCoord()) * cc[2];
+  c.lat = cc[0] + dist * Math.cos(angle);
+  c.lng = cc[1] + dist * Math.sin(angle) * 0.82; // leve elipse E-W
+});
+
+// Actualizar etiquetas de filtros con conteos reales
+document.getElementById('mapBtnAll').textContent   = `📍 Todos (1.000)`;
+document.getElementById('mapBtnAlto').textContent  = `🔴 Alto riesgo (${zonaAlto})`;
+document.getElementById('mapBtnMedio').textContent = `🟡 Riesgo medio (${zonaMedio})`;
+document.getElementById('mapBtnBajo').textContent  = `🟢 Bajo riesgo (${zonaBajo})`;
+// Resaltar el botón "Todos" como activo al inicio
+document.getElementById('mapBtnAll').style.cssText = 'background:#1e293b;color:white;border-color:#1e293b;padding:7px 18px;border-radius:20px;border:1.5px solid;font-size:12px;font-weight:600;cursor:pointer;font-family:Inter,sans-serif';
+
+// Tabla top 8 localidades
+document.getElementById('tablaGeoBody').innerHTML = statLoc.slice(0,8).map(l => {
+  const rc = l.avgSc >= 70 ? 'risk-high' : l.avgSc >= 40 ? 'risk-mid' : 'risk-low';
+  return `<tr><td>${l.n}</td><td>${l.cnt}</td><td>${(l.cnt/10).toFixed(1)}%</td>
+          <td><span class="${rc}">${l.avgSc.toFixed(1)}</span></td></tr>`;
+}).join('');
+
+// Chart densidad de riesgo por localidad (top 8)
+new Chart('mapBarChart', {
+  type: 'bar',
+  data: {
+    labels: statLoc.slice(0,8).map(l => l.n.length > 14 ? l.n.slice(0,12)+'…' : l.n),
+    datasets: [
+      { label:'Alto riesgo', data: statLoc.slice(0,8).map(l => Math.round(l.pctAlto*l.cnt/100)), backgroundColor:'#dc2626', borderRadius:4 },
+      { label:'Medio / Bajo', data: statLoc.slice(0,8).map(l => l.cnt - Math.round(l.pctAlto*l.cnt/100)), backgroundColor:'#94a3b8', borderRadius:4 },
+    ]
+  },
+  options: {
+    plugins: { legend: { position:'bottom', labels:{ font:{size:11}, boxWidth:10 } } },
+    scales: {
+      x: { stacked:true, grid:{ display:false }, ticks:{ font:{size:10} } },
+      y: { stacked:true, beginAtZero:true, grid:{ color:gridColor } }
+    }
+  }
+});
+
+// Inicializar mapa Leaflet
+const map = L.map('bogotaMap', { zoomControl:true, scrollWheelZoom:false }).setView([4.640, -74.095], 11);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+  maxZoom: 19
+}).addTo(map);
+
+function makeMarkerIcon(score) {
+  const color = score >= 70 ? '#dc2626' : score >= 40 ? '#d97706' : '#16a34a';
+  return L.divIcon({
+    className: '',
+    html: `<div style="width:9px;height:9px;border-radius:50%;background:${color};border:2px solid rgba(255,255,255,0.92);box-shadow:0 1px 4px rgba(0,0,0,0.38)"></div>`,
+    iconSize:[9,9], iconAnchor:[4,4]
+  });
+}
+
+const clusterOpts = { maxClusterRadius:50, spiderfyOnMaxZoom:true, showCoverageOnHover:false };
+const layerAll   = L.markerClusterGroup(clusterOpts);
+const layerAlto  = L.markerClusterGroup(clusterOpts);
+const layerMedio = L.markerClusterGroup(clusterOpts);
+const layerBajo  = L.markerClusterGroup(clusterOpts);
+
+contratos.forEach(c => {
+  const risk = c.score >= 70 ? 'alto' : c.score >= 40 ? 'medio' : 'bajo';
+  const riskHtml = c.score >= 70
+    ? '<span style="color:#dc2626;font-weight:700">🔴 Alto</span>'
+    : c.score >= 40
+    ? '<span style="color:#d97706;font-weight:700">🟡 Medio</span>'
+    : '<span style="color:#16a34a;font-weight:700">🟢 Bajo</span>';
+  const ipcHtml = c.ipcSt === 'excede'
+    ? '<span style="color:#dc2626;font-weight:600">Excede IPC ⚠️</span>'
+    : '<span style="color:#16a34a;font-weight:600">Dentro del IPC</span>';
+  const popupHtml = `<div style="font-family:Inter,sans-serif;font-size:12px;line-height:1.65;min-width:195px">
+    <div style="font-weight:700;font-size:13px;margin-bottom:4px;color:#1e293b">${c.loc}</div>
+    <div style="color:#64748b;font-size:11px;margin-bottom:8px">Estrato ${c.est.id}</div>
+    <div style="display:flex;justify-content:space-between;margin-bottom:3px"><span style="color:#475569">Canon</span><strong>${cop(c.arriendo)}/mes</strong></div>
+    <div style="display:flex;justify-content:space-between;margin-bottom:3px"><span style="color:#475569">Score riesgo</span><strong>${c.score}/100</strong></div>
+    <div style="display:flex;justify-content:space-between;margin-bottom:3px"><span style="color:#475569">Clasificación</span>${riskHtml}</div>
+    <div style="display:flex;justify-content:space-between"><span style="color:#475569">Incremento</span>${ipcHtml}</div>
+  </div>`;
+  // Capa "todos"
+  L.marker([c.lat, c.lng], { icon: makeMarkerIcon(c.score) })
+    .bindPopup(popupHtml, { maxWidth:240 })
+    .addTo(layerAll);
+  // Capa filtrada por riesgo
+  const targetLayer = risk === 'alto' ? layerAlto : risk === 'medio' ? layerMedio : layerBajo;
+  L.marker([c.lat, c.lng], { icon: makeMarkerIcon(c.score) })
+    .bindPopup(popupHtml, { maxWidth:240 })
+    .addTo(targetLayer);
+});
+
+map.addLayer(layerAll);
+let activeMapLayer = layerAll;
+
+window.filterMap = function(level) {
+  map.removeLayer(activeMapLayer);
+  // Resetear estilos de todos los botones
+  const btnsMap = { all: document.getElementById('mapBtnAll'), alto: document.getElementById('mapBtnAlto'), medio: document.getElementById('mapBtnMedio'), bajo: document.getElementById('mapBtnBajo') };
+  const colorsMap = { all:'#1e293b', alto:'#dc2626', medio:'#d97706', bajo:'#16a34a' };
+  Object.entries(btnsMap).forEach(([k, btn]) => {
+    btn.style.background = (k === level) ? colorsMap[k] : 'white';
+    btn.style.color = (k === level) ? 'white' : colorsMap[k];
+    btn.style.borderColor = colorsMap[k];
+  });
+  const layersMap = { all: layerAll, alto: layerAlto, medio: layerMedio, bajo: layerBajo };
+  activeMapLayer = layersMap[level];
+  map.addLayer(activeMapLayer);
+};
+
+// ─────────────────────────────────────────────────────────────
+// SECCIÓN 8 — COMPARATIVA PRECIOS PORTAL
+// ─────────────────────────────────────────────────────────────
+
+// Multiplicadores portal vs contrato por estrato
+// < 1 → portal MÁS barato que contrato (arrendatario paga SOBRE mercado)
+// > 1 → portal MÁS caro que contrato (arrendatario paga BAJO mercado)
+const PORTAL_MULT = { 1: 0.92, 2: 0.95, 3: 1.00, 4: 1.08, 5: 1.17, 6: 1.22 };
+
+const portalEst = statEst.map(e => {
+  const portalAvg = e.avgR * PORTAL_MULT[e.id];
+  const dev = (e.avgR / portalAvg - 1) * 100; // + = contrato SOBRE portal
+  return { ...e, portalAvg, dev };
+});
+
+// Chart 10 · Agrupado canon vs portal por estrato
+new Chart('barPortal', {
+  type: 'bar',
+  data: {
+    labels: ESTRATOS.map(e => e.label),
+    datasets: [
+      {
+        label: 'Canon contractual',
+        data: portalEst.map(e => Math.round(e.avgR/1000)*1000),
+        backgroundColor: '#16a34a', borderRadius: 5,
+      },
+      {
+        label: 'Precio portal (FR/M2)',
+        data: portalEst.map(e => Math.round(e.portalAvg/1000)*1000),
+        backgroundColor: '#2563eb', borderRadius: 5,
+      },
+    ]
+  },
+  options: {
+    plugins: { legend: { position:'bottom', labels:{ font:{size:11}, boxWidth:10 } } },
+    scales: {
+      y: {
+        beginAtZero: true, grid: { color: gridColor },
+        ticks: { callback: v => v >= 1e6 ? (v/1e6).toFixed(1)+'M' : (v/1e3).toFixed(0)+'k' }
+      },
+      x: { grid: { display: false } }
+    }
+  }
+});
+
+// Chart 11 · Desviación % por estrato
+new Chart('barDesviacion', {
+  type: 'bar',
+  data: {
+    labels: ESTRATOS.map(e => e.label),
+    datasets: [{
+      label: '% desviación',
+      data: portalEst.map(e => +e.dev.toFixed(1)),
+      backgroundColor: portalEst.map(e => e.dev > 0 ? '#dc2626' : '#16a34a'),
+      borderRadius: 5,
+    }]
+  },
+  options: {
+    plugins: {
+      legend: { display: false },
+      tooltip: { callbacks: { label: ctx => ` ${ctx.raw > 0 ? '+' : ''}${ctx.raw}%` } }
+    },
+    scales: {
+      y: { grid:{ color:gridColor }, ticks:{ callback: v => (v > 0 ? '+' : '') + v + '%' } },
+      x: { grid:{ display:false } }
+    }
+  }
+});
+
+// Insight box
+const e1dev = portalEst[0].dev.toFixed(1);
+const e2dev = portalEst[1].dev.toFixed(1);
+const e5dev = Math.abs(portalEst[4].dev).toFixed(1);
+const e6dev = Math.abs(portalEst[5].dev).toFixed(1);
+document.getElementById('portalInsight').innerHTML = `
+  <div class="insight-box">
+    <p>💡 <strong>Hallazgo clave:</strong> Los arrendatarios de estrato 1 y 2 pagan
+    <strong>+${e1dev}%</strong> y <strong>+${e2dev}%</strong> sobre el precio de mercado actual —
+    mientras que contratos de estrato 5 y 6 están un <strong>${e5dev}%</strong> y
+    <strong>${e6dev}%</strong> por debajo del portal, beneficiados por cánones pactados antes del alza de precios.</p>
+  </div>`;
+
+// Tabla: localidades ordenadas por mayor sobreprecio vs portal
+const locPortal = statLoc.map(loc => {
+  const arr = locMap[loc.n];
+  const contractAvg = arr.reduce((s,c) => s + c.arriendo, 0) / arr.length;
+  const weightedMult = arr.reduce((s,c) => s + PORTAL_MULT[c.est.id], 0) / arr.length;
+  const portalAvg = contractAvg * weightedMult;
+  const dev = (contractAvg / portalAvg - 1) * 100;
+  return { n: loc.n, contractAvg, portalAvg, dev, pctAlto: loc.pctAlto };
+}).sort((a,b) => b.dev - a.dev);
+
+// ─────────────────────────────────────────────────────────────
+// SECCIÓN 9 — PREGUNTAS FRECUENTES
+// ─────────────────────────────────────────────────────────────
+const FAQS = [
+  {
+    icon:'📈', freqClass:'freq-high',
+    freq:`Relacionada con ${pctExceden}% de contratos analizados`,
+    q:'¿Cuánto puede subirme el arriendo el próximo año?',
+    a:`El incremento máximo permitido es el IPC del año anterior (9.28% para 2025). Si tu contrato tiene más de un año, el arrendador puede ajustar el canon <strong>solo hasta ese porcentaje</strong>. Cualquier incremento mayor es ilegal, aunque esté pactado en el contrato.`,
+    ley:'Art. 20, Ley 820/2003'
+  },
+  {
+    icon:'📋', freqClass:'freq-high',
+    freq:`Ausente en ${alertaCounts[0].cnt} de 1.000 contratos`,
+    q:'¿Mi contrato debe incluir un inventario del inmueble?',
+    a:`Sí. El inventario detallado del estado del inmueble y sus bienes es un requisito fundamental. Sin él, el arrendador puede intentar hacerte responsable de daños preexistentes. Exige siempre el acta de entrega firmada por ambas partes.`,
+    ley:'Art. 14, Ley 820/2003'
+  },
+  {
+    icon:'💰', freqClass:'freq-high',
+    freq:`Irregularidad en ${alertaCounts[3].cnt} contratos analizados`,
+    q:'¿Cuánto depósito o garantía puede cobrarme el arrendador?',
+    a:`El depósito o garantía no puede exceder el equivalente a <strong>dos meses de arriendo</strong>. Si te cobran más, constituye una infracción. Además, debe ser devuelto con sus rendimientos al terminar el contrato, salvo deudas justificadas.`,
+    ley:'Art. 16, Ley 820/2003'
+  },
+  {
+    icon:'💡', freqClass:'freq-mid',
+    freq:`Presente en ${alertaCounts[4].cnt} contratos con cobros irregulares`,
+    q:'¿Puede el arrendador cobrarme los servicios públicos?',
+    a:`Depende de lo pactado. El arrendador puede cobrar servicios públicos <strong>solo si así se estipuló expresamente en el contrato</strong>. No puede cobrarlos por fuera del contrato ni incluir administración sin respaldo. Los recibos deben presentarse como soporte.`,
+    ley:'Art. 15, Ley 820/2003'
+  },
+  {
+    icon:'🚪', freqClass:'freq-mid',
+    freq:`Cláusula ausente en ${alertaCounts[1].cnt} contratos`,
+    q:'¿Puede el arrendador pedirme que me vaya antes de que venza el contrato?',
+    a:`Solo por causales definidas en la ley: mora en el pago, subarrendamiento sin autorización, uso indebido del inmueble o necesidad propia del arrendador (con 3 meses de aviso). Una solicitud de restitución sin causal válida puede ser demandada ante la SIC.`,
+    ley:'Arts. 22–24, Ley 820/2003'
+  },
+  {
+    icon:'⚖️', freqClass:'freq-mid',
+    freq:`Detectado en ${alertaCounts[6].cnt} contratos de la muestra`,
+    q:'¿Son legales las multas y penalidades que dice mi contrato?',
+    a:`Las penalidades pactadas son válidas <strong>solo si son proporcionales y razonables</strong>. Cláusulas que establezcan multas excesivas, pérdida total del depósito por incumplimiento menor, o cobros automáticos sin mora real son nulas de pleno derecho.`,
+    ley:'Art. 19, Ley 820/2003'
+  },
+  {
+    icon:'📅', freqClass:'freq-mid',
+    freq:`Sin término definido en ${alertaCounts[8].cnt} contratos`,
+    q:'¿Un contrato sin fecha de vencimiento tiene validez?',
+    a:`Sí, pero se considera de <strong>término indefinido</strong>. Cualquiera de las partes puede terminarlo con aviso previo de tres meses. No obstante, la falta de un término definido suele generar conflictos en renovaciones y preaviso de desalojo.`,
+    ley:'Art. 27, Ley 820/2003'
+  },
+  {
+    icon:'🏗️', freqClass:'freq-low',
+    freq:`Obligación ausente en contratos de estrato 1–2`,
+    q:'¿Quién paga las reparaciones y el mantenimiento del inmueble?',
+    a:`Las reparaciones locativas menores (desgaste normal por uso) son a cargo del <strong>arrendatario</strong>. Las reparaciones mayores — estructurales o de servicios esenciales — son obligación del <strong>arrendador</strong>. Cualquier acuerdo en contrario debe constar por escrito.`,
+    ley:'Art. 8, Ley 820/2003'
+  },
+  {
+    icon:'🏦', freqClass:'freq-low',
+    freq:`Pregunta en el 18% de contratos con paz y salvo pendiente`,
+    q:'¿Qué pasa si el arrendador vende el inmueble mientras vivo en él?',
+    a:`Tienes <strong>derecho de preferencia</strong> para comprar el inmueble en las mismas condiciones ofrecidas a terceros. Además, el nuevo propietario debe respetar el contrato vigente. No pueden desalojarte por la venta sin cumplir los plazos legales de restitución.`,
+    ley:'Art. 26, Ley 820/2003'
+  },
+  {
+    icon:'📢', freqClass:'freq-low',
+    freq:`Desconocida por el 65% de arrendatarios encuestados`,
+    q:'¿Cómo puedo reclamar si me cobran un incremento ilegal?',
+    a:`Puedes radicar una queja ante la <strong>Superintendencia de Industria y Comercio (SIC)</strong>, que tiene competencia para sancionar al arrendador. También puedes iniciar proceso ante juez civil. InmoLawyer documenta el exceso y genera el respaldo técnico para tu reclamación.`,
+    ley:'Art. 32, Ley 820/2003'
+  },
+];
+
+document.getElementById('faqGrid').innerHTML = FAQS.map((f, i) => `
+  <div class="faq-item" id="faq${i}">
+    <div class="faq-q" onclick="toggleFaq(${i})">
+      <span class="faq-icon">${f.icon}</span>
+      <div class="faq-q-text">
+        <strong>${f.q}</strong>
+        <span class="faq-freq ${f.freqClass}">📊 ${f.freq}</span>
+      </div>
+      <span class="faq-arrow">▼</span>
+    </div>
+    <div class="faq-body">
+      <p>${f.a}</p>
+      <span class="faq-ley">⚖️ ${f.ley}</span>
+    </div>
+  </div>
+`).join('');
+
+window.toggleFaq = function(i) {
+  const el = document.getElementById('faq'+i);
+  const isOpen = el.classList.contains('open');
+  el.classList.toggle('open', !isOpen);
+};
+
+document.getElementById('tablaPortalBody').innerHTML = locPortal.map(l => {
+  const devColor = l.dev > 0 ? '#dc2626' : '#16a34a';
+  const devSign  = l.dev > 0 ? '+' : '';
+  const bc = l.dev > 3 ? 'red' : l.dev > 0 ? 'yellow' : 'green';
+  const rcAlto = l.pctAlto >= 50 ? 'risk-high' : l.pctAlto >= 25 ? 'risk-mid' : 'risk-low';
+  return `<tr>
+    <td><strong>${l.n}</strong></td>
+    <td>${cop(Math.round(l.contractAvg/1000)*1000)}</td>
+    <td>${cop(Math.round(l.portalAvg/1000)*1000)}</td>
+    <td><span class="badge ${bc}">${devSign}${l.dev.toFixed(1)}%</span></td>
+    <td><span class="${rcAlto}">${l.pctAlto.toFixed(1)}%</span></td>
+  </tr>`;
+}).join('');
+
+// ─────────────────────────────────────────────────────────────
+// DESCARGAR PPT — PptxGenJS (13 diapositivas)
+// ─────────────────────────────────────────────────────────────
+window.downloadPPT = async function() {
+  const btn = document.getElementById('downloadPptBtn');
+  btn.innerHTML = '⏳ Generando PPT...'; btn.disabled = true;
+  try {
+    const pptx = new PptxGenJS();
+    pptx.layout = 'LAYOUT_WIDE';
+    pptx.title = 'InmoLawyer — Estudio de Mercado Simulado · Bogotá 2025';
+    const N = 13; // total slides
+    const CL = {
+      dark:'0F172A', green:'16A34A', acc:'86EFAC', gBg:'F0FDF4',
+      sl:'1E293B', slM:'475569', slL:'94A3B8', slBg:'F8FAFC',
+      wh:'FFFFFF', red:'DC2626', rL:'FEE2E2', yel:'D97706', yL:'FEF3C7',
+      blu:'2563EB', bBg:'EFF6FF', bdr:'E2E8F0',
+    };
+    const W=10, H=5.625;
+    const card=(s,x,y,w,h,bg,bc)=>s.addShape('roundRect',{x,y,w,h,fill:{color:bg||CL.wh},line:{color:bc||CL.bdr,pt:0.75},rectRadius:0.1});
+    const hdr=(s,lbl,ttl)=>{
+      s.addShape('rect',{x:0,y:0,w:W,h:0.58,fill:{color:CL.slBg},line:{color:CL.bdr,pt:0.5}});
+      s.addText(lbl.toUpperCase(),{x:0.4,y:0.07,w:9,h:0.22,fontSize:7.5,bold:true,color:CL.green,charSpacing:2});
+      s.addText(ttl,{x:0.4,y:0.25,w:9,h:0.28,fontSize:14,bold:true,color:CL.sl});
+    };
+    const foot=(s,n)=>{
+      s.addText('InmoLawyer · Estudio Simulado 2025 · inmolawyer.surge.sh',{x:0.4,y:5.32,w:8,h:0.22,fontSize:7.5,color:CL.slL});
+      s.addText(`${n}/${N}`,{x:9.0,y:5.32,w:0.85,h:0.22,fontSize:8,color:CL.slL,align:'right'});
+    };
+    const ec=['DC2626','F97316','EAB308','22C55E','16A34A','15803D'];
+
+    // ── S1: PORTADA ──────────────────────────────────────────
+    {const s=pptx.addSlide();s.background={color:CL.dark};
+      s.addShape('ellipse',{x:7.0,y:-1.0,w:4,h:4,fill:{color:'166534',transparency:62},line:{type:'none'}});
+      s.addShape('ellipse',{x:-0.8,y:3.2,w:3,h:3,fill:{color:'166534',transparency:75},line:{type:'none'}});
+      s.addText('⚖️  InmoLawyer',{x:0.5,y:0.45,w:5,h:0.42,fontSize:16,bold:true,color:CL.wh});
+      s.addText('Estudio de Mercado',{x:0.5,y:1.05,w:8,h:0.55,fontSize:26,bold:true,color:CL.wh,charSpacing:-1});
+      s.addText('Contratos de Arriendo',{x:0.5,y:1.63,w:8,h:0.62,fontSize:30,bold:true,color:CL.acc,charSpacing:-1.5});
+      s.addText('Bogotá 2025',{x:0.5,y:2.28,w:6,h:0.58,fontSize:28,bold:true,color:CL.wh,charSpacing:-1});
+      s.addShape('roundRect',{x:0.5,y:3.05,w:5.5,h:0.42,fill:{color:'854D0E',transparency:50},line:{color:'FDE047',pt:0.75},rectRadius:0.06});
+      s.addText('🧪  ESTUDIO SIMULADO — Los datos son sintéticos. Muestra cómo se verían resultados reales.',{x:0.62,y:3.08,w:5.28,h:0.36,fontSize:8,bold:true,color:'FDE047',wrap:true});
+      s.addText('Análisis de 1.000 contratos con IA bajo los criterios de la Ley 820 de 2003.',{x:0.5,y:3.65,w:6.5,h:0.4,fontSize:10,color:CL.wh,transparency:35,wrap:true});
+      s.addText('📍 Bogotá D.C.   ·   📊 1.000 contratos   ·   🗓️ 2024–2025   ·   ⚖️ Ley 820/2003   ·   📈 IPC: 9.28%',{x:0.5,y:4.88,w:9,h:0.28,fontSize:8.5,color:CL.wh,transparency:45});
+      foot(s,1);}
+
+    // ── S2: KPIs ─────────────────────────────────────────────
+    {const s=pptx.addSlide();s.background={color:CL.slBg};hdr(s,'Resumen ejecutivo','Métricas Clave del Portafolio');
+      const kp=[{i:'📋',v:'1.000',l:'Contratos analizados',sb:'19 localidades',bg:CL.gBg,vc:CL.green},{i:'💰',v:`$${fmtB(totalCartera)}`,l:'Cartera total / mes (COP)',sb:`Prom. ${cop(avgArriendo)}/cto`,bg:CL.bBg,vc:CL.blu},{i:'⚠️',v:`${pctExceden}%`,l:'Exceden IPC — cobro ilegal',sb:`${exceden.length} contratos en infracción`,bg:CL.rL,vc:CL.red},{i:'📊',v:String(avgScore),l:'Score de riesgo promedio',sb:`${zonaAlto} contratos en zona roja`,bg:CL.yL,vc:CL.yel}];
+      kp.forEach((k,i)=>{const x=0.35+i*2.35;card(s,x,0.7,2.2,1.7,k.bg);
+        s.addText(k.i,{x:x+0.15,y:0.78,w:0.5,h:0.38,fontSize:18});
+        s.addText(k.v,{x:x+0.15,y:1.18,w:2,h:0.48,fontSize:21,bold:true,color:CL.sl,charSpacing:-1});
+        s.addText(k.l,{x:x+0.15,y:1.68,w:2,h:0.28,fontSize:8,color:CL.slM});
+        s.addText(k.sb,{x:x+0.15,y:1.94,w:2,h:0.24,fontSize:7.5,bold:true,color:k.vc});});
+      card(s,0.35,2.6,9.3,1.08,CL.wh);
+      s.addText('Distribución por nivel de riesgo:',{x:0.55,y:2.68,w:4,h:0.24,fontSize:9,bold:true,color:CL.sl});
+      [{l:'🟢 Bajo riesgo (0–39)',v:zonaBajo,c:CL.green,bg:CL.gBg},{l:'🟡 Riesgo medio (40–69)',v:zonaMedio,c:CL.yel,bg:CL.yL},{l:'🔴 Riesgo alto (70–100)',v:zonaAlto,c:CL.red,bg:CL.rL}].forEach((z,i)=>{
+        const zx=0.55+i*3.05;card(s,zx,2.97,2.85,0.56,z.bg);
+        s.addText(z.l,{x:zx+0.1,y:3.01,w:1.9,h:0.24,fontSize:8,color:CL.slM});
+        s.addText(String(z.v),{x:zx+1.9,y:2.98,w:0.85,h:0.3,fontSize:18,bold:true,color:z.c,align:'right'});
+        s.addText('ctos',{x:zx+1.9,y:3.3,w:0.85,h:0.17,fontSize:7,color:CL.slL,align:'right'});});
+      s.addShape('roundRect',{x:0.35,y:3.78,w:9.3,h:0.62,fill:{color:CL.rL},line:{color:'FCA5A5',pt:0.75},rectRadius:0.08});
+      s.addText(`💸  Sobrecobro mensual estimado: ${cop(Math.round(sobrecobro/1000)*1000)}`,{x:0.55,y:3.84,w:5.5,h:0.28,fontSize:11,bold:true,color:'991B1B'});
+      s.addText(`→ Anual: ${cop(Math.round(sobrecobro*12/1e6)*1e6)}`,{x:6.1,y:3.84,w:3.3,h:0.28,fontSize:11,bold:true,color:CL.red,align:'right'});
+      s.addText(`Generado por los ${exceden.length} contratos con incremento superior al IPC del 9.28% vigente para 2025.`,{x:0.55,y:4.12,w:9,h:0.22,fontSize:8,color:'7F1D1D'});
+      foot(s,2);}
+
+    // ── S3: ESTRATO ───────────────────────────────────────────
+    {const s=pptx.addSlide();s.background={color:CL.slBg};hdr(s,'Composición de la muestra','Distribución por Estrato Socioeconómico');
+      let bx=0.35;
+      statEst.forEach((e,i)=>{const bw=e.cnt/1000*9.3;s.addShape('rect',{x:bx,y:0.7,w:bw,h:0.28,fill:{color:ec[i]},line:{type:'none'}});bx+=bw;});
+      statEst.forEach((e,i)=>{const lx=0.35+(i%3)*3.1,ly=1.08+Math.floor(i/3)*0.26;
+        s.addShape('rect',{x:lx,y:ly+0.04,w:0.17,h:0.15,fill:{color:ec[i]},line:{type:'none'}});
+        s.addText(`${e.label}  (${e.cnt} contratos — ${(e.cnt/10).toFixed(0)}%)`,{x:lx+0.24,y:ly,w:2.7,h:0.24,fontSize:8.5,color:CL.slM});});
+      const tH=[{text:'Estrato',options:{bold:true,fontSize:8,color:CL.slL,fill:CL.slBg}},{text:'Contratos',options:{bold:true,fontSize:8,color:CL.slL,fill:CL.slBg,align:'center'}},{text:'Arriendo prom.',options:{bold:true,fontSize:8,color:CL.slL,fill:CL.slBg,align:'right'}},{text:'Score riesgo',options:{bold:true,fontSize:8,color:CL.slL,fill:CL.slBg,align:'center'}},{text:'Excede IPC',options:{bold:true,fontSize:8,color:CL.slL,fill:CL.slBg,align:'center'}}];
+      const tR=statEst.map((e,i)=>[{text:e.label,options:{bold:true,fontSize:9,color:CL.sl,fill:CL.wh}},{text:String(e.cnt),options:{fontSize:9,color:CL.sl,fill:CL.wh,align:'center'}},{text:cop(Math.round(e.avgR/1000)*1000),options:{fontSize:9,color:CL.sl,fill:CL.wh,align:'right'}},{text:e.avgSc.toFixed(1),options:{fontSize:9,bold:true,color:e.avgSc>=70?CL.red:e.avgSc>=40?CL.yel:CL.green,fill:CL.wh,align:'center'}},{text:e.pctEx.toFixed(1)+'%',options:{fontSize:9,bold:true,color:e.pctEx>30?CL.red:e.pctEx>18?CL.yel:CL.green,fill:CL.wh,align:'center'}}]);
+      s.addTable([tH,...tR],{x:0.35,y:1.65,w:9.3,colW:[2.1,1.5,2.4,1.8,1.5],rowH:0.37,fontSize:9,border:{type:'solid',color:CL.bdr,pt:0.5}});
+      foot(s,3);}
+
+    // ── S4: IPC ───────────────────────────────────────────────
+    {const s=pptx.addSlide();s.background={color:CL.slBg};hdr(s,'Análisis de incrementos — Renovaciones 2025','Cumplimiento del IPC en Contratos con Renovación');
+      s.addShape('roundRect',{x:0.35,y:0.7,w:9.3,h:1.08,fill:{color:'FEF2F2'},line:{color:'FCA5A5',pt:0.75},rectRadius:0.1});
+      s.addText(`${pctExceden}%`,{x:0.55,y:0.75,w:1.6,h:0.75,fontSize:44,bold:true,color:CL.red,charSpacing:-2});
+      s.addText('de contratos presentan incrementos superiores al IPC legal (9.28%)',{x:2.25,y:0.82,w:7.1,h:0.42,fontSize:14,bold:true,color:'991B1B'});
+      s.addText(`${exceden.length} contratos en infracción · Sobrecobro: ${cop(Math.round(sobrecobro/1000)*1000)}/mes · Viola Art. 20, Ley 820/2003`,{x:2.25,y:1.26,w:7.2,h:0.26,fontSize:8.5,color:'7F1D1D'});
+      s.addText('% de contratos que excede IPC — por estrato',{x:0.35,y:1.95,w:5,h:0.26,fontSize:9.5,bold:true,color:CL.sl});
+      statEst.forEach((e,i)=>{const by=2.28+i*0.42,bc=e.pctEx>30?CL.red:e.pctEx>18?'F97316':CL.green;
+        s.addText(e.label,{x:0.35,y:by,w:1.4,h:0.3,fontSize:9,color:CL.slM,valign:'middle'});
+        s.addShape('rect',{x:1.8,y:by+0.05,w:6.2,h:0.2,fill:{color:'F1F5F9'},line:{type:'none'}});
+        s.addShape('rect',{x:1.8,y:by+0.05,w:Math.max(0.05,6.2*(e.pctEx/55)),h:0.2,fill:{color:bc},line:{type:'none'}});
+        s.addText(`${e.pctEx.toFixed(1)}%`,{x:8.1,y:by,w:0.75,h:0.3,fontSize:9,bold:true,color:bc,align:'right',valign:'middle'});
+        s.addText(`(${e.cnt})`,{x:8.85,y:by,w:1.1,h:0.3,fontSize:7.5,color:CL.slL,align:'right',valign:'middle'});});
+      s.addShape('roundRect',{x:0.35,y:4.92,w:9.3,h:0.46,fill:{color:CL.gBg},line:{color:'86EFAC',pt:0.75},rectRadius:0.08});
+      s.addText(`💡  E1: ${statEst[0].pctEx.toFixed(1)}% · E2: ${statEst[1].pctEx.toFixed(1)}% — Los estratos bajos concentran la mayor incidencia de cobros ilegales sobre el IPC.`,{x:0.55,y:4.96,w:9,h:0.36,fontSize:8.5,color:'14532D'});
+      foot(s,4);}
+
+    // ── S5: LOCALIDADES ───────────────────────────────────────
+    {const s=pptx.addSlide();s.background={color:CL.slBg};hdr(s,'Análisis geográfico','Riesgo Legal por Localidad — Top 10');
+      const t10=statLoc.slice(0,10);
+      const tH=[{text:'Localidad',options:{bold:true,fontSize:8,color:CL.slL,fill:CL.slBg}},{text:'Ctos.',options:{bold:true,fontSize:8,color:CL.slL,fill:CL.slBg,align:'center'}},{text:'Score prom.',options:{bold:true,fontSize:8,color:CL.slL,fill:CL.slBg,align:'center'}},{text:'% Alto riesgo',options:{bold:true,fontSize:8,color:CL.slL,fill:CL.slBg,align:'center'}},{text:'Nivel',options:{bold:true,fontSize:8,color:CL.slL,fill:CL.slBg,align:'center'}}];
+      const tR=t10.map(l=>{const rc=l.avgSc>=70?CL.red:l.avgSc>=40?CL.yel:CL.green,rl=l.avgSc>=70?'🔴 ALTO':l.avgSc>=40?'🟡 MEDIO':'🟢 BAJO',rf=l.avgSc>=70?CL.rL:l.avgSc>=40?CL.yL:CL.gBg;return[{text:l.n,options:{fontSize:9,color:CL.sl,fill:CL.wh}},{text:String(l.cnt),options:{fontSize:9,color:CL.slM,fill:CL.wh,align:'center'}},{text:l.avgSc.toFixed(1),options:{fontSize:10,bold:true,color:rc,fill:CL.wh,align:'center'}},{text:l.pctAlto.toFixed(1)+'%',options:{fontSize:9,color:rc,fill:CL.wh,align:'center'}},{text:rl,options:{fontSize:8,bold:true,color:rc,fill:rf,align:'center'}}];});
+      s.addTable([tH,...tR],{x:0.35,y:0.7,w:9.3,colW:[2.9,1.2,1.6,1.7,1.9],rowH:0.38,fontSize:9,border:{type:'solid',color:CL.bdr,pt:0.5}});
+      foot(s,5);}
+
+    // ── S6: ALERTAS ───────────────────────────────────────────
+    {const s=pptx.addSlide();s.background={color:CL.slBg};hdr(s,'Cláusulas problemáticas detectadas','Alertas Legales Más Frecuentes');
+      const ac2=['DC2626','EF4444','F97316','F59E0B','EAB308','22C55E','16A34A','0EA5E9','2563EB','7C3AED'];
+      const mx=alertaCounts[0].cnt;
+      alertaCounts.forEach((a,i)=>{const ay=0.72+i*0.46,bw=(a.cnt/mx)*6.9;
+        s.addShape('rect',{x:2.9,y:ay+0.1,w:6.9,h:0.27,fill:{color:'F1F5F9'},line:{type:'none'}});
+        s.addShape('rect',{x:2.9,y:ay+0.1,w:bw,h:0.27,fill:{color:ac2[i]},line:{type:'none'}});
+        s.addText(`${i+1}.`,{x:0.35,y:ay,w:0.35,h:0.38,fontSize:8,bold:true,color:CL.slL,align:'right',valign:'middle'});
+        s.addText(a.txt,{x:0.78,y:ay,w:2.0,h:0.38,fontSize:7.8,color:CL.sl,wrap:true,valign:'middle'});
+        s.addText(String(a.cnt),{x:9.65,y:ay,w:0.7,h:0.38,fontSize:9,bold:true,color:ac2[i],align:'right',valign:'middle'});});
+      s.addText('contratos',{x:9.0,y:5.28,w:1.3,h:0.2,fontSize:7,color:CL.slL,align:'right'});
+      foot(s,6);}
+
+    // ── S7: SCORE ─────────────────────────────────────────────
+    {const s=pptx.addSlide();s.background={color:CL.slBg};hdr(s,'Indicador compuesto de riesgo legal','Distribución del Score de Riesgo');
+      const bl=['0–9','10–19','20–29','30–39','40–49','50–59','60–69','70–79','80–89','90–100'];
+      const bc2=['16A34A','16A34A','16A34A','16A34A','D97706','D97706','D97706','DC2626','DC2626','DC2626'];
+      const mx2=Math.max(...histoBins),cW=5.4,cH=2.5,cX=0.35,cY=0.68;
+      s.addShape('rect',{x:cX,y:cY,w:cW,h:cH,fill:{color:CL.wh},line:{color:CL.bdr,pt:0.5}});
+      histoBins.forEach((v,i)=>{const bw2=cW/10,bh=(v/mx2)*(cH-0.18);
+        s.addShape('rect',{x:cX+i*bw2+bw2*.1,y:cY+cH-bh-0.09,w:bw2*.8,h:bh,fill:{color:bc2[i]},line:{type:'none'}});
+        s.addText(bl[i],{x:cX+i*bw2,y:cY+cH+0.02,w:bw2,h:0.18,fontSize:6.5,color:CL.slL,align:'center'});
+        s.addText(String(v),{x:cX+i*bw2,y:cY+cH-bh-0.22,w:bw2,h:0.18,fontSize:6.5,color:bc2[i],align:'center'});});
+      [{l:'🟢 Bajo riesgo',s:'Score 0–39',v:zonaBajo,bg:CL.gBg,vc:CL.green},{l:'🟡 Riesgo medio',s:'Score 40–69',v:zonaMedio,bg:CL.yL,vc:CL.yel},{l:'🔴 Riesgo alto',s:'Score 70–100',v:zonaAlto,bg:CL.rL,vc:CL.red}].forEach((z,i)=>{const zy=0.68+i*0.95;card(s,5.9,zy,4.05,0.82,z.bg);
+        s.addText(z.l,{x:6.1,y:zy+0.08,w:2.3,h:0.28,fontSize:10,bold:true,color:z.vc});
+        s.addText(z.s,{x:6.1,y:zy+0.36,w:2,h:0.2,fontSize:8,color:CL.slL});
+        s.addText(String(z.v),{x:8.55,y:zy+0.06,w:1.2,h:0.5,fontSize:24,bold:true,color:z.vc,align:'right',charSpacing:-1});
+        s.addText('contratos',{x:8.55,y:zy+0.55,w:1.2,h:0.18,fontSize:7,color:CL.slL,align:'right'});});
+      s.addText('Score promedio por estrato:',{x:0.35,y:3.86,w:5.5,h:0.24,fontSize:9,bold:true,color:CL.sl});
+      statEst.forEach((e,i)=>{const sx=0.35+i*1.55,sc=e.avgSc>=70?CL.red:e.avgSc>=40?CL.yel:CL.green;
+        card(s,sx,4.14,1.38,1.03,CL.wh);
+        s.addText(e.label.replace('Estrato ','E'),{x:sx+0.05,y:4.2,w:1.28,h:0.22,fontSize:8,color:CL.slM,align:'center'});
+        s.addText(e.avgSc.toFixed(1),{x:sx+0.05,y:4.4,w:1.28,h:0.42,fontSize:20,bold:true,color:sc,align:'center',charSpacing:-1});
+        s.addText('/100',{x:sx+0.05,y:4.8,w:1.28,h:0.2,fontSize:7.5,color:CL.slL,align:'center'});});
+      foot(s,7);}
+
+    // ── S8: CARTERA ───────────────────────────────────────────
+    {const s=pptx.addSlide();s.background={color:CL.slBg};hdr(s,'Impacto económico','Cartera Analizada y Estimado de Sobrecobros');
+      [{label:'CARTERA TOTAL / MES',v:cop(Math.round(totalCartera/1e6)*1e6),bg:CL.gBg,vc:CL.green},{label:'ARRIENDO PROMEDIO',v:cop(avgArriendo),bg:CL.bBg,vc:CL.blu},{label:'SOBRECOBRO ESTIMADO / MES',v:cop(Math.round(sobrecobro/1000)*1000),bg:CL.rL,vc:CL.red},{label:'SOBRECOBRO ANUAL ESTIMADO',v:cop(Math.round(sobrecobro*12/1e6)*1e6),bg:CL.yL,vc:CL.yel}].forEach((m,i)=>{const mx2=0.35+(i%2)*4.8,my=0.7+Math.floor(i/2)*1.22;card(s,mx2,my,4.55,1.08,m.bg);
+        s.addText(m.label,{x:mx2+0.15,y:my+0.1,w:4.25,h:0.22,fontSize:7.5,bold:true,color:CL.slL,charSpacing:0.5});
+        s.addText(m.v,{x:mx2+0.15,y:my+0.36,w:4.25,h:0.44,fontSize:18,bold:true,color:m.vc,charSpacing:-0.5});});
+      s.addText('Arriendo promedio por estrato (COP/mes)',{x:0.35,y:3.18,w:6,h:0.24,fontSize:9.5,bold:true,color:CL.sl});
+      const mxR=Math.max(...statEst.map(e=>e.avgR));
+      statEst.forEach((e,i)=>{const by=3.48+i*0.32,bw=(e.avgR/mxR)*7.2;
+        s.addText(e.label.replace('Estrato ','E'),{x:0.35,y:by,w:0.7,h:0.28,fontSize:8.5,color:CL.slM,valign:'middle'});
+        s.addShape('rect',{x:1.1,y:by+0.04,w:7.2,h:0.2,fill:{color:'F1F5F9'},line:{type:'none'}});
+        s.addShape('rect',{x:1.1,y:by+0.04,w:bw,h:0.2,fill:{color:ec[i]},line:{type:'none'}});
+        const lbl=e.avgR>=1e6?(e.avgR/1e6).toFixed(1)+'M':(e.avgR/1e3).toFixed(0)+'k';
+        s.addText(lbl,{x:8.4,y:by,w:1.3,h:0.28,fontSize:8.5,bold:true,color:ec[i],align:'right',valign:'middle'});});
+      foot(s,8);}
+
+    // ── S9: GEOGRAFÍA ─────────────────────────────────────────
+    {const s=pptx.addSlide();s.background={color:CL.slBg};hdr(s,'Distribución geográfica','Mapa de Contratos — 1.000 Inmuebles en Bogotá D.C.');
+      s.addShape('roundRect',{x:0.35,y:0.7,w:9.3,h:0.36,fill:{color:CL.bBg},line:{color:'BFDBFE',pt:0.75},rectRadius:0.07});
+      s.addText('🗺️  El informe interactivo incluye un mapa con 1.000 puntos georreferenciados, clusters y filtros por nivel de riesgo (Leaflet + OpenStreetMap).',{x:0.55,y:0.73,w:9,h:0.28,fontSize:8.5,color:'1D4ED8'});
+      const tH=[{text:'Localidad',options:{bold:true,fontSize:8,color:CL.slL,fill:CL.slBg}},{text:'Ctos.',options:{bold:true,fontSize:8,color:CL.slL,fill:CL.slBg,align:'center'}},{text:'% Total',options:{bold:true,fontSize:8,color:CL.slL,fill:CL.slBg,align:'center'}},{text:'Score prom.',options:{bold:true,fontSize:8,color:CL.slL,fill:CL.slBg,align:'center'}},{text:'% Riesgo alto',options:{bold:true,fontSize:8,color:CL.slL,fill:CL.slBg,align:'center'}},{text:'Nivel',options:{bold:true,fontSize:8,color:CL.slL,fill:CL.slBg,align:'center'}}];
+      const tR=statLoc.map(l=>{const rc=l.avgSc>=70?CL.red:l.avgSc>=40?CL.yel:CL.green,rl=l.avgSc>=70?'🔴 ALTO':l.avgSc>=40?'🟡 MEDIO':'🟢 BAJO',rf=l.avgSc>=70?CL.rL:l.avgSc>=40?CL.yL:CL.gBg;return[{text:l.n,options:{fontSize:8.5,color:CL.sl,fill:CL.wh}},{text:String(l.cnt),options:{fontSize:8.5,color:CL.slM,fill:CL.wh,align:'center'}},{text:(l.cnt/10).toFixed(1)+'%',options:{fontSize:8.5,color:CL.slM,fill:CL.wh,align:'center'}},{text:l.avgSc.toFixed(1),options:{fontSize:8.5,bold:true,color:rc,fill:CL.wh,align:'center'}},{text:l.pctAlto.toFixed(1)+'%',options:{fontSize:8.5,color:rc,fill:CL.wh,align:'center'}},{text:rl,options:{fontSize:7.5,bold:true,color:rc,fill:rf,align:'center'}}];});
+      s.addTable([tH,...tR],{x:0.35,y:1.14,w:9.3,colW:[2.4,1.1,1.1,1.35,1.55,1.8],rowH:0.255,fontSize:8.5,border:{type:'solid',color:CL.bdr,pt:0.5}});
+      foot(s,9);}
+
+    // ── S10: PORTAL ───────────────────────────────────────────
+    {const s=pptx.addSlide();s.background={color:CL.slBg};hdr(s,'Benchmarking de mercado','Canon Contractual vs. Portales Inmobiliarios (dic. 2025)');
+      s.addShape('rect',{x:1.08,y:0.66,w:0.22,h:0.13,fill:{color:'16A34A'},line:{type:'none'}});s.addText('Canon contractual',{x:1.36,y:0.64,w:1.7,h:0.2,fontSize:8,color:CL.slM});
+      s.addShape('rect',{x:3.15,y:0.66,w:0.22,h:0.13,fill:{color:CL.blu},line:{type:'none'}});s.addText('Precio portal (FR/M2)',{x:3.43,y:0.64,w:1.8,h:0.2,fontSize:8,color:CL.slM});
+      portalEst.forEach((e,i)=>{const py=0.88+i*0.52,mR=Math.max(e.avgR,e.portalAvg),bw=(e.avgR/mR)*3.9,pw=(e.portalAvg/mR)*3.9;
+        s.addText(e.label.replace('Estrato ','E'),{x:0.35,y:py,w:0.68,h:0.46,fontSize:8,color:CL.slM,valign:'middle'});
+        s.addShape('rect',{x:1.08,y:py+0.03,w:bw,h:0.17,fill:{color:'16A34A'},line:{type:'none'}});
+        s.addText(e.avgR>=1e6?(e.avgR/1e6).toFixed(1)+'M':(e.avgR/1e3).toFixed(0)+'k',{x:1.08+bw+0.05,y:py,w:1.2,h:0.23,fontSize:7.5,bold:true,color:'16A34A',valign:'middle'});
+        s.addShape('rect',{x:1.08,y:py+0.24,w:pw,h:0.17,fill:{color:CL.blu},line:{type:'none'}});
+        s.addText(e.portalAvg>=1e6?(e.portalAvg/1e6).toFixed(1)+'M':(e.portalAvg/1e3).toFixed(0)+'k',{x:1.08+pw+0.05,y:py+0.22,w:1.2,h:0.23,fontSize:7.5,bold:true,color:CL.blu,valign:'middle'});
+        const dc=e.dev>0?CL.red:CL.green;s.addText((e.dev>0?'+':'')+e.dev.toFixed(1)+'%',{x:5.1,y:py+0.06,w:0.88,h:0.32,fontSize:11,bold:true,color:dc,align:'center',valign:'middle'});});
+      s.addText('Top localidades — mayor sobreprecio vs. portal:',{x:0.35,y:4.1,w:6,h:0.24,fontSize:9,bold:true,color:CL.sl});
+      const tH=[{text:'Localidad',options:{bold:true,fontSize:7.5,color:CL.slL,fill:CL.slBg}},{text:'Canon prom.',options:{bold:true,fontSize:7.5,color:CL.slL,fill:CL.slBg,align:'right'}},{text:'Precio portal',options:{bold:true,fontSize:7.5,color:CL.slL,fill:CL.slBg,align:'right'}},{text:'Desviación',options:{bold:true,fontSize:7.5,color:CL.slL,fill:CL.slBg,align:'center'}},{text:'% Riesgo alto',options:{bold:true,fontSize:7.5,color:CL.slL,fill:CL.slBg,align:'center'}}];
+      const tR=locPortal.slice(0,5).map(l=>{const dc=l.dev>0?CL.red:CL.green,df=l.dev>0?CL.rL:CL.gBg;return[{text:l.n,options:{fontSize:8,color:CL.sl,fill:CL.wh}},{text:cop(Math.round(l.contractAvg/1000)*1000),options:{fontSize:8,color:CL.sl,fill:CL.wh,align:'right'}},{text:cop(Math.round(l.portalAvg/1000)*1000),options:{fontSize:8,color:CL.sl,fill:CL.wh,align:'right'}},{text:(l.dev>0?'+':'')+l.dev.toFixed(1)+'%',options:{fontSize:8.5,bold:true,color:dc,fill:df,align:'center'}},{text:l.pctAlto.toFixed(1)+'%',options:{fontSize:8,color:l.pctAlto>=50?CL.red:l.pctAlto>=25?CL.yel:CL.green,fill:CL.wh,align:'center'}}];});
+      s.addTable([tH,...tR],{x:0.35,y:4.38,w:9.3,colW:[2.65,1.85,1.85,1.5,1.45],rowH:0.24,fontSize:8,border:{type:'solid',color:CL.bdr,pt:0.5}});
+      foot(s,10);}
+
+    // ── S11 & S12: FAQS ───────────────────────────────────────
+    [0,1].forEach(half=>{const s=pptx.addSlide();s.background={color:CL.slBg};
+      hdr(s,'Consultas de los afiliados',`Las 10 Preguntas Más Frecuentes (${half===0?'1–5':'6–10'})`);
+      FAQS.slice(half*5,half*5+5).forEach((f,i)=>{const fy=0.72+i*0.95;
+        card(s,0.35,fy,9.3,0.88,CL.wh);
+        s.addText(f.icon,{x:0.48,y:fy+0.12,w:0.4,h:0.4,fontSize:16});
+        s.addText(f.q,{x:0.95,y:fy+0.06,w:6.9,h:0.34,fontSize:10,bold:true,color:CL.sl,wrap:true});
+        const fc=f.freqClass==='freq-high'?CL.rL:f.freqClass==='freq-mid'?CL.yL:CL.gBg;
+        const tc=f.freqClass==='freq-high'?CL.red:f.freqClass==='freq-mid'?CL.yel:CL.green;
+        s.addShape('roundRect',{x:0.95,y:fy+0.44,w:3.6,h:0.22,fill:{color:fc},line:{type:'none'},rectRadius:0.05});
+        s.addText(`📊 ${f.freq}`,{x:1.02,y:fy+0.45,w:3.45,h:0.2,fontSize:7.5,bold:true,color:tc});
+        s.addShape('roundRect',{x:4.65,y:fy+0.44,w:1.52,h:0.22,fill:{color:CL.bBg},line:{type:'none'},rectRadius:0.05});
+        s.addText(`⚖️ ${f.ley}`,{x:4.72,y:fy+0.45,w:1.42,h:0.2,fontSize:7.5,color:CL.blu});
+        const ca=f.a.replace(/<[^>]*>/g,'');
+        s.addText(ca.length>125?ca.slice(0,122)+'…':ca,{x:0.95,y:fy+0.69,w:8.4,h:0.18,fontSize:7.5,color:CL.slM});});
+      foot(s,11+half);});
+
+    // ── S13: CTA ──────────────────────────────────────────────
+    {const s=pptx.addSlide();s.background={color:CL.dark};
+      s.addShape('ellipse',{x:7.0,y:-0.8,w:3.8,h:3.8,fill:{color:'166534',transparency:62},line:{type:'none'}});
+      s.addShape('ellipse',{x:-0.8,y:3.0,w:3,h:3,fill:{color:'166534',transparency:75},line:{type:'none'}});
+      s.addText('¿Qué puede hacer su gremio con',{x:0.8,y:0.65,w:8.5,h:0.45,fontSize:18,bold:true,color:CL.wh,align:'center'});
+      s.addText('InmoLawyer Corporate?',{x:0.8,y:1.12,w:8.5,h:0.52,fontSize:24,bold:true,color:CL.acc,align:'center',charSpacing:-0.8});
+      s.addText('Ofrezca a todos sus afiliados la misma tecnología de análisis que generó este informe — en segundos, para cada contrato.',{x:1.0,y:1.72,w:8.0,h:0.5,fontSize:10.5,color:CL.wh,transparency:30,align:'center',wrap:true});
+      [{icon:'📊',t:'Panel del gremio',d:'Dashboard centralizado con análisis de todos los contratos. Reportes mensuales automáticos.'},{icon:'⚡',t:'Análisis en 30 seg.',d:'Score de riesgo, alertas legales y recomendaciones instantáneas para cada afiliado.'},{icon:'⚖️',t:'Cumplimiento Ley 820',d:'Verificación automática de cláusulas ilegales, incrementos fuera del IPC y obligaciones.'}].forEach((b,i)=>{const bx=0.55+i*3.1;
+        s.addShape('roundRect',{x:bx,y:2.42,w:2.85,h:1.55,fill:{color:'FFFFFF',transparency:92},line:{color:'FFFFFF',pt:0.5,transparency:80},rectRadius:0.1});
+        s.addText(b.icon,{x:bx+0.15,y:2.52,w:0.5,h:0.45,fontSize:22});
+        s.addText(b.t,{x:bx+0.15,y:2.98,w:2.55,h:0.3,fontSize:10,bold:true,color:CL.wh});
+        s.addText(b.d,{x:bx+0.15,y:3.3,w:2.55,h:0.6,fontSize:8.5,color:CL.wh,transparency:40,wrap:true});});
+      s.addShape('roundRect',{x:2.8,y:4.18,w:4.4,h:0.56,fill:{color:CL.green},line:{type:'none'},rectRadius:0.08});
+      s.addText('Solicitar demostración corporativa →',{x:2.8,y:4.18,w:4.4,h:0.56,fontSize:12,bold:true,color:CL.wh,align:'center',valign:'middle'});
+      s.addText('hola@inmolawyer.co   ·   inmolawyer.surge.sh   ·   Bogotá, Colombia',{x:1.0,y:4.88,w:8,h:0.26,fontSize:9,color:CL.wh,transparency:55,align:'center'});
+      foot(s,13);}
+
+    await pptx.writeFile({fileName:'InmoLawyer-Estudio-Simulado-2025.pptx'});
+    btn.innerHTML='✅ Descargado!';
+    setTimeout(()=>{btn.innerHTML='⬇️ Descargar PPT (13 diapositivas)';btn.disabled=false;},3500);
+  } catch(err) {
+    console.error(err);
+    btn.innerHTML='❌ Error — ver consola';
+    btn.disabled=false;
+  }
+};
+</script>
+
+</div><!-- /content-wrapper -->
+
+<script>
+// ═══ EMAIL GATE CONFIG ═══
+// Reemplaza esta URL con tu Google Apps Script Web App URL
+const GOOGLE_SHEET_WEBHOOK = 'https://script.google.com/macros/s/AKfycbzWFop3R_gRAKPbevIDYf8R96RkvWxWF9ihtKgpscStg3ZcKw8vzHQXSDqYn-MW1LYpLQ/exec';
+
+function handleGateSubmit(e) {
+  e.preventDefault();
+  const email = document.getElementById('gateEmail').value.trim();
+  const errorEl = document.getElementById('gateError');
+  const btn = document.getElementById('gateBtn');
+
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    errorEl.style.display = 'block';
+    return false;
+  }
+  errorEl.style.display = 'none';
+  btn.disabled = true;
+  btn.textContent = 'Cargando...';
+
+  // Guardar en localStorage
+  localStorage.setItem('inmo_gate_email', email);
+  localStorage.setItem('inmo_gate_time', new Date().toISOString());
+
+  // Enviar a Google Sheets (no bloquea el acceso si falla)
+  if (GOOGLE_SHEET_WEBHOOK !== 'TU_WEBHOOK_URL_AQUI') {
+    fetch(GOOGLE_SHEET_WEBHOOK, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: email,
+        timestamp: new Date().toISOString(),
+        document: document.title,
+        referrer: document.referrer || 'directo'
+      })
+    }).catch(() => {});
+  }
+
+  // Revelar contenido
+  setTimeout(() => {
+    document.getElementById('emailGate').classList.add('hidden');
+    document.getElementById('contentWrapper').classList.add('visible');
+  }, 600);
+
+  return false;
+}
+
+// Verificar si ya tiene acceso
+(function() {
+  const savedEmail = localStorage.getItem('inmo_gate_email');
+  if (savedEmail) {
+    document.getElementById('emailGate').classList.add('hidden');
+    document.getElementById('contentWrapper').classList.add('visible');
+  }
+})();
+</script>
+</body>
+</html>

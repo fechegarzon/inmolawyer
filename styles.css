@@ -1189,6 +1189,134 @@ body {
 .toast.warning i { color: var(--warning); }
 
 /* ===================================================
+   MULTI-DOC — Document Type Badge, Campos Display, Secciones Extra
+   =================================================== */
+
+.doc-type-badge {
+    display: inline-block;
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    margin-bottom: 16px;
+    color: #fff;
+    background: var(--primary);
+}
+.doc-type-badge.doc-type-arriendo_vivienda { background: #3D8A5A; }
+.doc-type-badge.doc-type-arriendo_comercial { background: #2563EB; }
+.doc-type-badge.doc-type-promesa_compraventa { background: #7C3AED; }
+.doc-type-badge.doc-type-cert_libertad { background: #D97706; }
+
+/* Campos Display Grid */
+.campos-display-card { margin-bottom: 20px; }
+.campos-display-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    padding: 4px 0;
+}
+/* Shared base for data items (campos + secciones) */
+.campo-display-item,
+.seccion-extra-item {
+    padding: 10px 14px;
+    background: var(--bg-main, #f9fafb);
+    border-radius: var(--radius-md, 8px);
+    border: 1px solid var(--border-color, #e5e7eb);
+}
+.campo-display-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.campo-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--primary-light, #e8f5e9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: var(--primary, #3D8A5A);
+    font-size: 0.85rem;
+}
+.campo-info label {
+    display: block;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--text-light, #6b7280);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 2px;
+}
+.campo-info span {
+    font-size: 0.92rem;
+    font-weight: 500;
+    color: var(--text-dark, #1f2937);
+}
+
+/* Secciones Extra */
+.seccion-extra-card {
+    background: var(--bg-card, #fff);
+    border-radius: var(--radius-xl, 12px);
+    padding: 20px 24px;
+    box-shadow: var(--shadow-sm, 0 1px 3px rgba(0,0,0,0.1));
+    margin-bottom: 16px;
+}
+.seccion-extra-items {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.seccion-extra-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.seccion-extra-label {
+    font-size: 0.88rem;
+    color: var(--text-dark, #1f2937);
+    flex: 1;
+}
+.seccion-extra-tipo {
+    display: block;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--text-light, #6b7280);
+    text-transform: uppercase;
+    margin-bottom: 2px;
+}
+.seccion-extra-status {
+    font-size: 0.78rem;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 12px;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+.seccion-extra-status.status-danger {
+    background: #FEE2E2;
+    color: #DC2626;
+}
+.seccion-extra-status.status-success {
+    background: #D1FAE5;
+    color: #059669;
+}
+.seccion-extra-status.status-warning {
+    background: #FEF3C7;
+    color: #D97706;
+}
+.seccion-extra-status.status-info {
+    background: #DBEAFE;
+    color: #2563EB;
+}
+
+@media (max-width: 640px) {
+    .campos-display-grid { grid-template-columns: 1fr; }
+}
+
+/* ===================================================
    RESULTS — Redesign Layout
    =================================================== */
 

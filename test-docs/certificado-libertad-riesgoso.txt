@@ -1,0 +1,179 @@
+REPUBLICA DE COLOMBIA
+SUPERINTENDENCIA DE NOTARIADO Y REGISTRO
+OFICINA DE REGISTRO DE INSTRUMENTOS PUBLICOS DE BOGOTA ZONA CENTRO
+
+CERTIFICADO DE TRADICION Y LIBERTAD
+(Expedido conforme al articulo 54 de la Ley 1579 de 2012)
+
+Fecha de expedicion: 05 de marzo de 2025
+Hora: 10:23:45 AM
+Codigo de verificacion: VER-2025-0305-8A7B3C
+
+=============================================================================
+SECCION I - COMPLEMENTACION (DATOS DEL INMUEBLE)
+=============================================================================
+
+Numero de matricula inmobiliaria:    050C-12345678
+Circulo registral (ORIP):           BOGOTA ZONA CENTRO
+Estado del folio:                    ACTIVO
+Fecha de apertura del folio:         15 de julio de 1998
+
+Tipo de predio:                      URBANO
+Tipo de inmueble:                    APARTAMENTO
+Direccion actual:                    Calle 72 No. 10-34, Apartamento 501, Bogota D.C.
+Cedula catastral:                    005608120500
+
+Cabida y linderos:
+Area privada: 85.30 m2. Area construida: 92.15 m2. Apartamento 501 ubicado en el piso 5 de la Torre A del Edificio Residencias del Parque, sometido al regimen de propiedad horizontal segun Escritura Publica No. 2345 de la Notaria 12 de Bogota. Coeficiente de copropiedad: 1.2345%. Incluye un (1) garaje cubierto No. G-25 de 12.50 m2 y un (1) deposito No. D-15 de 4.00 m2. Linderos: segun plano aprobado y reglamento de propiedad horizontal inscrito.
+
+Matricula de origen:                 050C-00876543 (lote madre)
+
+=============================================================================
+SECCION II - ANOTACIONES
+=============================================================================
+
+-----------------------------------------------------------------------------
+ANOTACION No. 001
+Fecha de anotacion:     18 de julio de 1998
+Documento:              Escritura Publica No. 2345 del 10 de julio de 1998,
+                        Notaria 12 del Circulo de Bogota D.C.
+Naturaleza juridica:    0125 - COMPRAVENTA
+Grupo:                  01 - TRADICION
+
+De: CONSTRUCTORA ALTOS DEL PARQUE S.A. - NIT 800.123.456-7
+A:  LUIS HERNANDO VARGAS PENA - C.C. 19.234.567
+
+Valor: $45.000.000
+Especificacion: Primera venta del apartamento por parte de la constructora.
+-----------------------------------------------------------------------------
+
+-----------------------------------------------------------------------------
+ANOTACION No. 002
+Fecha de anotacion:     22 de agosto de 1998
+Documento:              Escritura Publica No. 3456 del 15 de agosto de 1998,
+                        Notaria 12 del Circulo de Bogota D.C.
+Naturaleza juridica:    0210 - HIPOTECA ABIERTA SIN LIMITE DE CUANTIA
+Grupo:                  02 - GRAVAMENES
+
+De: LUIS HERNANDO VARGAS PENA - C.C. 19.234.567
+A favor de: BANCO CENTRAL HIPOTECARIO (hoy BANCO DAVIVIENDA S.A.)
+
+Valor: $35.000.000
+Especificacion: Hipoteca para garantizar credito de adquisicion de vivienda.
+-----------------------------------------------------------------------------
+
+-----------------------------------------------------------------------------
+ANOTACION No. 003
+Fecha de anotacion:     10 de marzo de 2005
+Documento:              Escritura Publica No. 789 del 5 de marzo de 2005,
+                        Notaria 25 del Circulo de Bogota D.C.
+Naturaleza juridica:    0700 - CANCELACION DE HIPOTECA
+Grupo:                  07 - CANCELACIONES
+
+Cancela anotacion No. 002.
+Especificacion: Cancelacion de hipoteca por pago total de la obligacion.
+-----------------------------------------------------------------------------
+
+-----------------------------------------------------------------------------
+ANOTACION No. 004
+Fecha de anotacion:     14 de noviembre de 2007
+Documento:              Escritura Publica No. 5678 del 8 de noviembre de 2007,
+                        Notaria 38 del Circulo de Bogota D.C.
+Naturaleza juridica:    0605 - TRANSFERENCIA DE DERECHOS Y ACCIONES
+                        (FALSA TRADICION)
+Grupo:                  06 - FALSA TRADICION
+
+De: LUIS HERNANDO VARGAS PENA - C.C. 19.234.567
+A:  ESPERANZA RODRIGUEZ BUITRAGO - C.C. 41.678.901
+
+Valor: $120.000.000
+Especificacion: Venta de derechos y acciones sobre el inmueble. Se inscribe
+                como FALSA TRADICION por cuanto se transfieren derechos y
+                acciones, no dominio pleno.
+-----------------------------------------------------------------------------
+
+-----------------------------------------------------------------------------
+ANOTACION No. 005
+Fecha de anotacion:     3 de mayo de 2012
+Documento:              Escritura Publica No. 1234 del 28 de abril de 2012,
+                        Notaria 15 del Circulo de Bogota D.C.
+Naturaleza juridica:    0125 - COMPRAVENTA
+Grupo:                  01 - TRADICION
+
+De: ESPERANZA RODRIGUEZ BUITRAGO - C.C. 41.678.901
+A:  FERNANDO JOSE MORALES ACOSTA - C.C. 79.567.890
+
+Valor: $185.000.000
+Especificacion: Compraventa del inmueble.
+-----------------------------------------------------------------------------
+
+-----------------------------------------------------------------------------
+ANOTACION No. 006
+Fecha de anotacion:     3 de mayo de 2012
+Documento:              Escritura Publica No. 1234 del 28 de abril de 2012,
+                        Notaria 15 del Circulo de Bogota D.C.
+Naturaleza juridica:    0310 - PATRIMONIO DE FAMILIA INEMBARGABLE
+Grupo:                  03 - LIMITACIONES Y AFECTACIONES
+
+Constituido por: FERNANDO JOSE MORALES ACOSTA - C.C. 79.567.890
+Beneficiarios:          FERNANDO JOSE MORALES ACOSTA, SANDRA MILENA TORRES
+                        GARCIA (conyuge, C.C. 52.345.678), y los menores
+                        VALENTINA MORALES TORRES y SANTIAGO MORALES TORRES.
+
+Especificacion: Constitucion de patrimonio de familia inembargable sobre el
+                inmueble, conforme a la Ley 70 de 1931.
+-----------------------------------------------------------------------------
+
+-----------------------------------------------------------------------------
+ANOTACION No. 007
+Fecha de anotacion:     15 de enero de 2020
+Documento:              Escritura Publica No. 0089 del 10 de enero de 2020,
+                        Notaria 42 del Circulo de Bogota D.C.
+Naturaleza juridica:    0210 - HIPOTECA ABIERTA SIN LIMITE DE CUANTIA
+Grupo:                  02 - GRAVAMENES
+
+De: FERNANDO JOSE MORALES ACOSTA - C.C. 79.567.890
+A favor de: BANCOLOMBIA S.A. - NIT 890.903.938-8
+
+Valor: $200.000.000
+Especificacion: Hipoteca abierta para garantizar obligaciones crediticias
+                presentes y futuras con Bancolombia S.A. Credito de libre
+                inversion.
+-----------------------------------------------------------------------------
+
+-----------------------------------------------------------------------------
+ANOTACION No. 008
+Fecha de anotacion:     22 de septiembre de 2024
+Documento:              Oficio No. 4567 del 18 de septiembre de 2024,
+                        Juzgado 15 Civil Municipal de Bogota D.C.
+Naturaleza juridica:    0401 - EMBARGO
+Grupo:                  04 - MEDIDAS CAUTELARES
+
+Demandante:  BANCOLOMBIA S.A. - NIT 890.903.938-8
+Demandado:   FERNANDO JOSE MORALES ACOSTA - C.C. 79.567.890
+
+Radicado:    11001400301520240045600
+Especificacion: Embargo decretado dentro del proceso ejecutivo hipotecario
+                adelantado por Bancolombia S.A. contra Fernando Jose Morales
+                Acosta, por el cobro de obligaciones derivadas del credito
+                garantizado con hipoteca (Anotacion No. 007).
+-----------------------------------------------------------------------------
+
+=============================================================================
+NOTA: El presente certificado contiene OCHO (8) anotaciones.
+El inmueble presenta las siguientes situaciones vigentes:
+- GRAVAMEN VIGENTE: Hipoteca a favor de Bancolombia S.A. (Anotacion No. 007)
+- LIMITACION VIGENTE: Patrimonio de Familia Inembargable (Anotacion No. 006)
+- MEDIDA CAUTELAR VIGENTE: Embargo (Anotacion No. 008)
+- ANOTACION DE FALSA TRADICION en la cadena (Anotacion No. 004)
+=============================================================================
+
+PROPIETARIO ACTUAL SEGUN REGISTRO:
+FERNANDO JOSE MORALES ACOSTA - C.C. 79.567.890
+Porcentaje de propiedad: 100%
+(Anotacion de adquisicion: No. 005)
+
+=============================================================================
+FIN DEL CERTIFICADO
+Verificacion en linea: https://certificados.supernotariado.gov.co/certificado
+=============================================================================

@@ -6,8 +6,8 @@
     <title>InmoLawyer — Análisis de Contratos de Arrendamiento</title>
     <meta name="description" content="Plataforma de análisis de contratos de arrendamiento con IA. Detecta cláusulas abusivas y verifica el cumplimiento de la Ley 820 de 2003.">
     <meta name="robots" content="noindex, nofollow">
-    <link rel="canonical" href="https://inmo.tools/inmolawyer/app">
-    <link rel="icon" href="/inmolawyer/favicon.svg" type="image/svg+xml">
+    <link rel="canonical" href="https://inmolawyer.surge.sh/app.html">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚖️</text></svg>">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdnjs.cloudflare.com">
@@ -15,7 +15,9 @@
     <link rel="stylesheet" href="styles.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script defer data-domain="inmo.tools" src="https://plausible.io/js/script.js"></script>
+    <script>window.plausible = window.plausible || function() { (window.plausible.q = window.plausible.q || []).push(arguments) };</script>
 </head>
 <body>
 
@@ -155,7 +157,7 @@
             </div>
             <p class="pricing-footer-note">
                 <i class="fas fa-lock"></i> Pago seguro con <strong>Wompi</strong> · Tarjetas, PSE, Nequi y más ·
-                <a href="https://wa.me/573337124882?text=Hola%2C%20quiero%20info%20sobre%20los%20planes%20de%20InmoLawyer" target="_blank">¿Dudas? WhatsApp</a>
+                <a href="https://wa.me/573337124882?text=Hola%2C%20quiero%20info%20sobre%20los%20planes%20de%20InmoLawyer" target="_blank" onclick="if(typeof plausible!=='undefined')plausible('whatsapp_cta_clicked',{props:{source:'pricing_footer'}})">¿Dudas? WhatsApp</a>
             </p>
         </div>
     </div>
@@ -423,7 +425,7 @@
                     <p>Con el plan gratuito puedes analizar hasta <strong>5 contratos</strong>. Para seguir protegiendo tus arrendamientos, elige un plan.</p>
                     <div class="blocked-actions">
                         <a href="https://wa.me/573337124882?text=Hola%2C%20quiero%20contratar%20un%20plan%20de%20InmoLawyer"
-                           target="_blank" class="btn-whatsapp-block">
+                           target="_blank" class="btn-whatsapp-block" onclick="if(typeof plausible!=='undefined')plausible('whatsapp_cta_clicked',{props:{source:'blocked_modal'}})">
                             <i class="fab fa-whatsapp"></i> Hablar con ventas por WhatsApp
                         </a>
                         <button onclick="showPricingModal()" class="btn-ver-planes">
@@ -491,6 +493,9 @@
 
             <!-- Results Section -->
             <section class="results-section" id="resultsSection" style="display: none;">
+
+                <!-- ── Badge tipo documento ── -->
+                <div class="doc-type-badge" id="docTypeBadge" style="display: none;"></div>
 
                 <!-- ── HERO: Score + Nivel de Riesgo + Acciones ── -->
                 <div class="result-hero" id="riskScoreCard">
@@ -594,6 +599,15 @@
                     </div><!-- /result-col -->
                 </div><!-- /result-row -->
 
+                <!-- ── Campos Display dinamico (nuevos tipos) ── -->
+                <div class="data-card campos-display-card" style="display: none;">
+                    <div class="card-header">
+                        <span class="ch-icon"><i class="fas fa-file-alt"></i></span>
+                        <h3>Datos del Documento</h3>
+                    </div>
+                    <div class="campos-display-grid" id="camposDisplayContainer"></div>
+                </div>
+
                 <!-- ── Deudores Solidarios (ancho completo, condicional) ── -->
                 <div class="data-card deudores-card" id="deudoresCard" style="display: none;">
                     <div class="card-header">
@@ -612,7 +626,13 @@
                     <div class="alerts-container" id="alertsContainer"></div>
                 </div>
 
-                <!-- ── FILA 2: IPC | Fechas Importantes ── -->
+                <!-- ── Secciones Extra (nuevos tipos) ── -->
+                <div id="seccionesExtraContainer" style="display: none;">
+                    <div id="seccionesExtraContent"></div>
+                </div>
+
+                <!-- ── FILA 2: IPC | Fechas Importantes (solo vivienda) ── -->
+                <div id="viviendaSections">
                 <div class="result-row">
 
                     <!-- Incrementos IPC -->
@@ -679,6 +699,7 @@
                     </div>
 
                 </div><!-- /result-row -->
+                </div><!-- /viviendaSections -->
 
                 <!-- ── Chat: Abogado Virtual (ancho completo) ── -->
                 <div class="data-card chat-card">
@@ -759,6 +780,7 @@
     <div class="toast-container" id="toastContainer"></div>
 
     <script src="auth.js?v=8" defer></script>
-    <script src="app.js?v=8" defer></script>
+    <script type="module" src="app.js?v=8"></script>
+<script src="/inmolawyer/wa-float.js"></script>
 </body>
 </html>

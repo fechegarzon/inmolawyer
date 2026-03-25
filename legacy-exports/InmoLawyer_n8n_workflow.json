@@ -1,0 +1,489 @@
+{
+  "name": "InmoLawyer - Análisis de Contratos de Arrendamiento",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "analizar-contrato",
+        "responseMode": "responseNode",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "id": "webhook-analizar",
+      "name": "Webhook Analizar Contrato",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "analizar-contrato-webhook"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extractor de datos de contratos de arrendamiento colombianos\nconst texto = $input.first().json.body.texto || '';\n\n// Función auxiliar para limpiar texto\nconst limpiarTexto = (str) => str ? str.trim().replace(/\\s+/g, ' ') : null;\n\n// Función para extraer números de documentos\nconst extraerNumero = (str) => str ? str.replace(/[^0-9]/g, '') : null;\n\n// Función para parsear valores monetarios colombianos\nconst parsearMoneda = (str) => {\n  if (!str) return null;\n  // Remover símbolo de peso, puntos de miles y convertir coma decimal\n  const limpio = str.replace(/[$\\s]/g, '').replace(/\\./g, '').replace(',', '.');\n  return parseFloat(limpio) || null;\n};\n\n// ==================== EXTRACCIÓN DE ARRENDADOR ====================\nlet arrendadorNombre = null;\nlet arrendadorDocumento = null;\nlet arrendadorTipoDoc = null;\n\n// Patrón para ARRENDADOR con nombre y documento\nconst patronArrendador = /ARRENDADOR[:\\s]*([A-ZÁÉÍÓÚÑ][A-Za-záéíóúñ\\s]+?)(?:,?\\s*(?:identificad[oa]\\s*con|con)?\\s*)?(NIT|C\\.?C\\.?|C[ée]dula)[.:\\s]*([\\d.,\\-]+)/i;\nconst matchArrendador = texto.match(patronArrendador);\n\nif (matchArrendador) {\n  arrendadorNombre = limpiarTexto(matchArrendador[1]);\n  arrendadorTipoDoc = matchArrendador[2].toUpperCase().includes('NIT') ? 'NIT' : 'C.C.';\n  arrendadorDocumento = extraerNumero(matchArrendador[3]);\n} else {\n  // Intento alternativo: buscar NIT o CC después de mencionar arrendador\n  const patronArrendadorAlt = /ARRENDADOR[:\\s]*([^,\\n]+)/i;\n  const matchAlt = texto.match(patronArrendadorAlt);\n  if (matchAlt) arrendadorNombre = limpiarTexto(matchAlt[1]);\n  \n  // Buscar NIT cerca del contexto de arrendador\n  const patronNIT = /NIT[.:\\s]*([\\d.,\\-]+)/i;\n  const matchNIT = texto.match(patronNIT);\n  if (matchNIT) {\n    arrendadorDocumento = extraerNumero(matchNIT[1]);\n    arrendadorTipoDoc = 'NIT';\n  }\n}\n\n// ==================== EXTRACCIÓN DE ARRENDATARIO ====================\nlet arrendatarioNombre = null;\nlet arrendatarioDocumento = null;\nlet arrendatarioTipoDoc = 'C.C.';\n\n// Patrón para ARRENDATARIO\nconst patronArrendatario = /ARRENDATARIO[:\\s]*([A-ZÁÉÍÓÚÑ][A-Za-záéíóúñ\\s]+?)(?:,?\\s*(?:identificad[oa]\\s*con|con)?\\s*)?(C\\.?C\\.?|C[ée]dula)[.:\\s]*([\\d.,]+)/i;\nconst matchArrendatario = texto.match(patronArrendatario);\n\nif (matchArrendatario) {\n  arrendatarioNombre = limpiarTexto(matchArrendatario[1]);\n  arrendatarioDocumento = extraerNumero(matchArrendatario[3]);\n} else {\n  // Intento alternativo\n  const patronArrendatarioAlt = /ARRENDATARIO[:\\s]*([^,\\n]+)/i;\n  const matchAlt2 = texto.match(patronArrendatarioAlt);\n  if (matchAlt2) arrendatarioNombre = limpiarTexto(matchAlt2[1]);\n  \n  // Buscar CC que no sea del arrendador\n  const patronCC = /C\\.?C\\.?[.:\\s]*([\\d.,]+)/gi;\n  const matchesCC = [...texto.matchAll(patronCC)];\n  if (matchesCC.length > 0) {\n    // Tomar el primer CC que no sea el del arrendador\n    for (const m of matchesCC) {\n      const cc = extraerNumero(m[1]);\n      if (cc !== arrendadorDocumento) {\n        arrendatarioDocumento = cc;\n        break;\n      }\n    }\n  }\n}\n\n// ==================== EXTRACCIÓN DE CANON ====================\nlet canonMensual = null;\n\n// Múltiples patrones para canon de arrendamiento\nconst patronesCanon = [\n  /canon\\s*(?:de\\s*)?(?:arrendamiento)?[^$\\d]*\\$?\\s*([\\d.,]+)/i,\n  /valor\\s*(?:del\\s*)?(?:arrendamiento|canon|arriendo)[^$\\d]*\\$?\\s*([\\d.,]+)/i,\n  /arrendamiento\\s*(?:mensual)?[^$\\d]*\\$?\\s*([\\d.,]+)/i,\n  /suma\\s*(?:de)?[^$\\d]*\\$?\\s*([\\d.,]+)\\s*(?:pesos|mensuales)/i,\n  /\\$\\s*([\\d.,]+)\\s*(?:pesos)?\\s*(?:m\\/cte|moneda\\s*corriente|mensuales)/i\n];\n\nfor (const patron of patronesCanon) {\n  const matchCanon = texto.match(patron);\n  if (matchCanon) {\n    canonMensual = parsearMoneda(matchCanon[1]);\n    if (canonMensual && canonMensual > 100000) break; // Valor razonable para arriendo\n  }\n}\n\n// ==================== EXTRACCIÓN DE DIRECCIÓN ====================\nlet direccionInmueble = null;\nlet ciudad = null;\n\n// Patrones para dirección\nconst patronesDireccion = [\n  /DIRECCI[ÓO]N[^:]*:[:\\s]*([^\\n,]+(?:Apto\\.?|Apartamento|Casa|Local|Oficina)?[^\\n]*)/i,\n  /ubicado\\s*en[:\\s]*([^,\\n]+)/i,\n  /inmueble\\s*(?:ubicado)?\\s*(?:en)?[:\\s]*([^,\\n]+)/i,\n  /((?:Calle|Carrera|Avenida|Diagonal|Transversal|Cra\\.?|Cl\\.?|Av\\.?)[^,\\n]+)/i\n];\n\nfor (const patron of patronesDireccion) {\n  const matchDir = texto.match(patron);\n  if (matchDir) {\n    direccionInmueble = limpiarTexto(matchDir[1]);\n    break;\n  }\n}\n\n// Patrones para ciudad\nconst patronesCiudad = [\n  /(?:en\\s*la\\s*ciudad\\s*de|ciudad[:\\s]*|ubicado\\s*en)\\s*([A-ZÁÉÍÓÚÑ][a-záéíóúñ]+(?:\\s*D\\.?C\\.?)?)/i,\n  /(Bogot[áa]\\s*D\\.?C\\.?|Medell[íi]n|Cali|Barranquilla|Cartagena|Bucaramanga|Pereira|Santa\\s*Marta|C[úu]cuta|Ibagu[ée]|Manizales|Villavicencio)/i\n];\n\nfor (const patron of patronesCiudad) {\n  const matchCiudad = texto.match(patron);\n  if (matchCiudad) {\n    ciudad = limpiarTexto(matchCiudad[1]);\n    break;\n  }\n}\n\n// ==================== EXTRACCIÓN DE FECHAS Y DURACIÓN ====================\nlet fechaInicio = null;\nlet duracionMeses = null;\n\n// Patrones para fecha de inicio\nconst patronesFecha = [\n  /(?:a\\s*partir\\s*del?|desde\\s*el?|inicio[:\\s]*|vigencia[:\\s]*|comenzar[áa]?\\s*el?)\\s*(\\d{1,2})\\s*(?:de)?\\s*(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)\\s*(?:de|del)?\\s*(\\d{4})/i,\n  /(?:fecha\\s*de\\s*inicio)[:\\s]*(\\d{1,2})[\\/-](\\d{1,2})[\\/-](\\d{4})/i,\n  /(\\d{1,2})\\s*(?:de)?\\s*(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)\\s*(?:de|del)?\\s*(\\d{4})/i\n];\n\nconst meses = {\n  'enero': '01', 'febrero': '02', 'marzo': '03', 'abril': '04',\n  'mayo': '05', 'junio': '06', 'julio': '07', 'agosto': '08',\n  'septiembre': '09', 'octubre': '10', 'noviembre': '11', 'diciembre': '12'\n};\n\nfor (const patron of patronesFecha) {\n  const matchFecha = texto.match(patron);\n  if (matchFecha) {\n    if (meses[matchFecha[2]?.toLowerCase()]) {\n      const dia = matchFecha[1].padStart(2, '0');\n      const mes = meses[matchFecha[2].toLowerCase()];\n      const anio = matchFecha[3];\n      fechaInicio = `${anio}-${mes}-${dia}`;\n    } else if (matchFecha[1] && matchFecha[2] && matchFecha[3]) {\n      fechaInicio = `${matchFecha[3]}-${matchFecha[2].padStart(2, '0')}-${matchFecha[1].padStart(2, '0')}`;\n    }\n    break;\n  }\n}\n\n// Patrones para duración\nconst patronesDuracion = [\n  /(?:duraci[óo]n|t[ée]rmino|plazo|vigencia)[^\\d]*(\\d+)\\s*(?:meses?|\\(\\d+\\)\\s*meses?)/i,\n  /(?:por\\s*(?:un\\s*)?(?:t[ée]rmino|plazo|periodo)\\s*de)\\s*(\\d+)\\s*meses?/i,\n  /(\\d+)\\s*meses?\\s*(?:de\\s*)?(?:duraci[óo]n|vigencia|plazo)/i,\n  /(?:doce|un\\s*año)\\s*\\(?\\s*(12)\\s*\\)?\\s*meses?/i\n];\n\nfor (const patron of patronesDuracion) {\n  const matchDuracion = texto.match(patron);\n  if (matchDuracion) {\n    duracionMeses = parseInt(matchDuracion[1]);\n    break;\n  }\n}\n\n// Si menciona \"un año\" sin número\nif (!duracionMeses && /un\\s*a[ñn]o/i.test(texto)) {\n  duracionMeses = 12;\n}\n\n// ==================== GENERAR ID ÚNICO ====================\nconst contratoId = 'CTR-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);\n\n// ==================== RESULTADO ====================\nreturn {\n  json: {\n    contrato_id: contratoId,\n    texto_original: texto,\n    datos_extraidos: {\n      arrendador: {\n        nombre: arrendadorNombre,\n        documento: arrendadorDocumento,\n        tipoDoc: arrendadorTipoDoc\n      },\n      arrendatario: {\n        nombre: arrendatarioNombre,\n        documento: arrendatarioDocumento,\n        tipoDoc: arrendatarioTipoDoc\n      },\n      canon_mensual: canonMensual,\n      direccion_inmueble: direccionInmueble,\n      ciudad: ciudad,\n      fecha_inicio: fechaInicio,\n      duracion_meses: duracionMeses\n    },\n    extraccion_exitosa: !!(arrendadorNombre || arrendatarioNombre || canonMensual)\n  }\n};"
+      },
+      "id": "code-extraer-datos",
+      "name": "Extraer Datos del Contrato",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO contratos (\n  id,\n  arrendador_nombre,\n  arrendador_documento,\n  arrendador_tipo_doc,\n  arrendatario_nombre,\n  arrendatario_documento,\n  arrendatario_tipo_doc,\n  canon_mensual,\n  direccion_inmueble,\n  ciudad,\n  fecha_inicio,\n  duracion_meses,\n  texto_extraido,\n  estado,\n  created_at\n) VALUES (\n  '{{ $json.contrato_id }}',\n  {{ $json.datos_extraidos.arrendador.nombre ? \"'\" + $json.datos_extraidos.arrendador.nombre.replace(/'/g, \"''\") + \"'\" : \"NULL\" }},\n  {{ $json.datos_extraidos.arrendador.documento ? \"'\" + $json.datos_extraidos.arrendador.documento + \"'\" : \"NULL\" }},\n  {{ $json.datos_extraidos.arrendador.tipoDoc ? \"'\" + $json.datos_extraidos.arrendador.tipoDoc + \"'\" : \"NULL\" }},\n  {{ $json.datos_extraidos.arrendatario.nombre ? \"'\" + $json.datos_extraidos.arrendatario.nombre.replace(/'/g, \"''\") + \"'\" : \"NULL\" }},\n  {{ $json.datos_extraidos.arrendatario.documento ? \"'\" + $json.datos_extraidos.arrendatario.documento + \"'\" : \"NULL\" }},\n  {{ $json.datos_extraidos.arrendatario.tipoDoc ? \"'\" + $json.datos_extraidos.arrendatario.tipoDoc + \"'\" : \"NULL\" }},\n  {{ $json.datos_extraidos.canon_mensual || \"NULL\" }},\n  {{ $json.datos_extraidos.direccion_inmueble ? \"'\" + $json.datos_extraidos.direccion_inmueble.replace(/'/g, \"''\") + \"'\" : \"NULL\" }},\n  {{ $json.datos_extraidos.ciudad ? \"'\" + $json.datos_extraidos.ciudad.replace(/'/g, \"''\") + \"'\" : \"NULL\" }},\n  {{ $json.datos_extraidos.fecha_inicio ? \"'\" + $json.datos_extraidos.fecha_inicio + \"'\" : \"NULL\" }},\n  {{ $json.datos_extraidos.duracion_meses || \"NULL\" }},\n  '{{ $json.texto_original.replace(/'/g, \"''\").substring(0, 10000) }}',\n  'analizado',\n  NOW()\n)\nRETURNING id;",
+        "options": {}
+      },
+      "id": "postgres-guardar-contrato",
+      "name": "Guardar Contrato en DB",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [720, 300],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-credentials",
+          "name": "PostgreSQL InmoLawyer"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "create",
+        "model": "claude-sonnet-4-20250514",
+        "messages": {
+          "values": [
+            {
+              "role": "user",
+              "content": "Eres un abogado inmobiliario colombiano experto en la Ley 820 de 2003 (Ley de Arrendamiento de Vivienda Urbana). Tu trabajo es analizar contratos de arrendamiento y detectar cláusulas potencialmente abusivas o ilegales.\n\nANALIZA EL SIGUIENTE CONTRATO:\n\n{{ $('Extraer Datos del Contrato').item.json.texto_original }}\n\nDATOS EXTRAÍDOS DEL CONTRATO:\n- Arrendador: {{ $('Extraer Datos del Contrato').item.json.datos_extraidos.arrendador.nombre }} ({{ $('Extraer Datos del Contrato').item.json.datos_extraidos.arrendador.tipoDoc }} {{ $('Extraer Datos del Contrato').item.json.datos_extraidos.arrendador.documento }})\n- Arrendatario: {{ $('Extraer Datos del Contrato').item.json.datos_extraidos.arrendatario.nombre }} ({{ $('Extraer Datos del Contrato').item.json.datos_extraidos.arrendatario.tipoDoc }} {{ $('Extraer Datos del Contrato').item.json.datos_extraidos.arrendatario.documento }})\n- Canon mensual: ${{ $('Extraer Datos del Contrato').item.json.datos_extraidos.canon_mensual }}\n- Dirección: {{ $('Extraer Datos del Contrato').item.json.datos_extraidos.direccion_inmueble }}\n- Ciudad: {{ $('Extraer Datos del Contrato').item.json.datos_extraidos.ciudad }}\n\nDETECTA ESPECÍFICAMENTE:\n\n1. **Depósitos en dinero (PROHIBIDO - Art. 16 Ley 820)**: Cualquier mención de depósito, garantía en dinero, o suma adicional al canon. Solo se permiten garantías como pólizas de seguro, fianzas bancarias o fiadores.\n\n2. **Incrementos superiores al IPC (Art. 20)**: Si el contrato menciona incrementos anuales, verifica que no excedan el IPC del año anterior. Cualquier cláusula que permita incrementos mayores es ilegal.\n\n3. **Terminación unilateral sin justa causa**: Revisa las cláusulas de terminación. El arrendador solo puede terminar por las causales del Art. 22 (no pago, subarriendo no autorizado, cambio de destinación, etc.).\n\n4. **Preaviso (Art. 24)**: Para terminar el contrato, se requiere preaviso de 3 meses. Cláusulas que exijan menos tiempo para el arrendatario o más para el arrendador pueden ser abusivas.\n\n5. **Servicios públicos**: Verificar que no se cobre al arrendatario por servicios que no corresponden o que se incluyan cláusulas de corte de servicios como presión.\n\n6. **Renuncia a derechos**: Cualquier cláusula donde el arrendatario renuncie a derechos legales es nula.\n\n7. **Penalidades excesivas**: Multas desproporcionadas por terminación anticipada.\n\nRESPONDE ÚNICAMENTE EN FORMATO JSON CON ESTA ESTRUCTURA EXACTA (sin markdown, sin explicaciones adicionales):\n\n{\n  \"alertas\": [\n    {\n      \"tipo\": \"danger|warning|info\",\n      \"titulo\": \"Título corto de la alerta\",\n      \"descripcion\": \"Descripción detallada del problema encontrado y por qué es problemático\",\n      \"referencia_legal\": \"Art. X Ley 820 de 2003\",\n      \"es_clausula_abusiva\": true|false,\n      \"texto_clausula\": \"Texto exacto de la cláusula problemática si se identifica\"\n    }\n  ],\n  \"score_riesgo\": 0-100,\n  \"resumen\": \"Resumen ejecutivo del análisis en 2-3 oraciones\",\n  \"recomendaciones\": [\n    \"Recomendación 1 para el arrendatario\",\n    \"Recomendación 2\"\n  ]\n}\n\nCRITERIOS PARA SCORE DE RIESGO:\n- 0-25: Contrato estándar, sin cláusulas problemáticas\n- 26-50: Algunas cláusulas ambiguas o menores\n- 51-75: Cláusulas potencialmente abusivas que requieren atención\n- 76-100: Cláusulas claramente ilegales o muy riesgosas\n\nUSA \"danger\" para cláusulas claramente ilegales, \"warning\" para cláusulas ambiguas o potencialmente problemáticas, \"info\" para observaciones generales."
+            }
+          ]
+        },
+        "options": {
+          "maxTokens": 4096,
+          "temperature": 0.3
+        }
+      },
+      "id": "claude-analizar-clausulas",
+      "name": "Claude - Analizar Cláusulas",
+      "type": "@n8n/n8n-nodes-langchain.anthropic",
+      "typeVersion": 1,
+      "position": [960, 300],
+      "credentials": {
+        "anthropicApi": {
+          "id": "anthropic-credentials",
+          "name": "Anthropic API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Procesar respuesta de Claude y preparar alertas para guardar\nconst contratoId = $('Extraer Datos del Contrato').item.json.contrato_id;\nconst datosExtraidos = $('Extraer Datos del Contrato').item.json.datos_extraidos;\nconst respuestaClaude = $input.first().json;\n\n// Parsear la respuesta de Claude (puede venir como string o ya parseado)\nlet analisis;\ntry {\n  if (typeof respuestaClaude.content === 'string') {\n    // Limpiar posibles caracteres de markdown\n    const textoLimpio = respuestaClaude.content\n      .replace(/```json\\n?/g, '')\n      .replace(/```\\n?/g, '')\n      .trim();\n    analisis = JSON.parse(textoLimpio);\n  } else if (respuestaClaude.content && respuestaClaude.content[0]) {\n    const texto = respuestaClaude.content[0].text || respuestaClaude.content[0];\n    const textoLimpio = texto\n      .replace(/```json\\n?/g, '')\n      .replace(/```\\n?/g, '')\n      .trim();\n    analisis = JSON.parse(textoLimpio);\n  } else {\n    analisis = respuestaClaude;\n  }\n} catch (e) {\n  // Si falla el parsing, crear estructura por defecto\n  analisis = {\n    alertas: [{\n      tipo: 'info',\n      titulo: 'Análisis completado',\n      descripcion: 'No se detectaron cláusulas problemáticas evidentes. Se recomienda revisión profesional.',\n      referencia_legal: 'Ley 820 de 2003',\n      es_clausula_abusiva: false\n    }],\n    score_riesgo: 10,\n    resumen: 'Contrato analizado sin detectar cláusulas claramente abusivas.',\n    recomendaciones: ['Consultar con un abogado para revisión detallada']\n  };\n}\n\n// Preparar alertas para insertar en DB\nconst alertasParaDB = (analisis.alertas || []).map((alerta, index) => ({\n  contrato_id: contratoId,\n  tipo: alerta.tipo || 'info',\n  titulo: alerta.titulo || 'Alerta sin título',\n  descripcion: alerta.descripcion || '',\n  referencia_legal: alerta.referencia_legal || '',\n  es_clausula_abusiva: alerta.es_clausula_abusiva || false,\n  texto_clausula: alerta.texto_clausula || null,\n  orden: index\n}));\n\nreturn {\n  json: {\n    contrato_id: contratoId,\n    datos_extraidos: datosExtraidos,\n    analisis: analisis,\n    alertas_para_db: alertasParaDB,\n    score_riesgo: analisis.score_riesgo || 0,\n    resumen: analisis.resumen || '',\n    recomendaciones: analisis.recomendaciones || []\n  }\n};"
+      },
+      "id": "code-procesar-analisis",
+      "name": "Procesar Análisis Claude",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1200, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO alertas_contrato (\n  contrato_id,\n  tipo,\n  titulo,\n  descripcion,\n  referencia_legal,\n  es_clausula_abusiva,\n  texto_clausula,\n  created_at\n)\nSELECT \n  '{{ $json.contrato_id }}',\n  alerta->>'tipo',\n  alerta->>'titulo',\n  alerta->>'descripcion',\n  alerta->>'referencia_legal',\n  (alerta->>'es_clausula_abusiva')::boolean,\n  alerta->>'texto_clausula',\n  NOW()\nFROM jsonb_array_elements('{{ JSON.stringify($json.alertas_para_db) }}'::jsonb) AS alerta\nRETURNING id;",
+        "options": {}
+      },
+      "id": "postgres-guardar-alertas",
+      "name": "Guardar Alertas en DB",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [1440, 300],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-credentials",
+          "name": "PostgreSQL InmoLawyer"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {},
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"contrato_id\": \"{{ $('Procesar Análisis Claude').item.json.contrato_id }}\",\n  \"datos\": {\n    \"arrendador\": {{ JSON.stringify($('Procesar Análisis Claude').item.json.datos_extraidos.arrendador) }},\n    \"arrendatario\": {{ JSON.stringify($('Procesar Análisis Claude').item.json.datos_extraidos.arrendatario) }},\n    \"canon\": {{ $('Procesar Análisis Claude').item.json.datos_extraidos.canon_mensual || 0 }},\n    \"direccion\": \"{{ $('Procesar Análisis Claude').item.json.datos_extraidos.direccion_inmueble || '' }}\",\n    \"ciudad\": \"{{ $('Procesar Análisis Claude').item.json.datos_extraidos.ciudad || '' }}\",\n    \"fecha_inicio\": \"{{ $('Procesar Análisis Claude').item.json.datos_extraidos.fecha_inicio || '' }}\",\n    \"duracion_meses\": {{ $('Procesar Análisis Claude').item.json.datos_extraidos.duracion_meses || 0 }}\n  },\n  \"alertas\": {{ JSON.stringify($('Procesar Análisis Claude').item.json.analisis.alertas || []) }},\n  \"score_riesgo\": {{ $('Procesar Análisis Claude').item.json.score_riesgo || 0 }},\n  \"resumen\": \"{{ $('Procesar Análisis Claude').item.json.resumen || '' }}\",\n  \"recomendaciones\": {{ JSON.stringify($('Procesar Análisis Claude').item.json.recomendaciones || []) }}\n}"
+      },
+      "id": "respond-analizar",
+      "name": "Responder Análisis",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1680, 300]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "consulta-contrato",
+        "responseMode": "responseNode",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "id": "webhook-consulta",
+      "name": "Webhook Consulta Contrato",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 600],
+      "webhookId": "consulta-contrato-webhook"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n  c.id,\n  c.arrendador_nombre,\n  c.arrendador_documento,\n  c.arrendatario_nombre,\n  c.arrendatario_documento,\n  c.canon_mensual,\n  c.direccion_inmueble,\n  c.ciudad,\n  c.fecha_inicio,\n  c.duracion_meses,\n  c.texto_extraido,\n  c.created_at,\n  COALESCE(\n    json_agg(\n      json_build_object(\n        'tipo', a.tipo,\n        'titulo', a.titulo,\n        'descripcion', a.descripcion,\n        'referencia_legal', a.referencia_legal\n      )\n    ) FILTER (WHERE a.id IS NOT NULL),\n    '[]'\n  ) as alertas\nFROM contratos c\nLEFT JOIN alertas_contrato a ON c.id = a.contrato_id\nWHERE c.id = '{{ $json.body.contrato_id }}'\nGROUP BY c.id;",
+        "options": {}
+      },
+      "id": "postgres-obtener-contrato",
+      "name": "Obtener Contrato de DB",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [480, 600],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-credentials",
+          "name": "PostgreSQL InmoLawyer"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition-contrato-existe",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-contrato-existe",
+      "name": "¿Contrato Existe?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [720, 600]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "create",
+        "model": "claude-sonnet-4-20250514",
+        "messages": {
+          "values": [
+            {
+              "role": "user",
+              "content": "Eres un abogado inmobiliario colombiano experto en la Ley 820 de 2003 (Ley de Arrendamiento de Vivienda Urbana). Debes responder preguntas sobre contratos de arrendamiento de manera clara, precisa y fundamentada en la ley.\n\nCONTEXTO DEL CONTRATO:\n- ID: {{ $('Obtener Contrato de DB').item.json.id }}\n- Arrendador: {{ $('Obtener Contrato de DB').item.json.arrendador_nombre }} ({{ $('Obtener Contrato de DB').item.json.arrendador_documento }})\n- Arrendatario: {{ $('Obtener Contrato de DB').item.json.arrendatario_nombre }} ({{ $('Obtener Contrato de DB').item.json.arrendatario_documento }})\n- Canon mensual: ${{ $('Obtener Contrato de DB').item.json.canon_mensual }}\n- Dirección: {{ $('Obtener Contrato de DB').item.json.direccion_inmueble }}\n- Ciudad: {{ $('Obtener Contrato de DB').item.json.ciudad }}\n- Fecha inicio: {{ $('Obtener Contrato de DB').item.json.fecha_inicio }}\n- Duración: {{ $('Obtener Contrato de DB').item.json.duracion_meses }} meses\n\nALERTAS DETECTADAS PREVIAMENTE:\n{{ JSON.stringify($('Obtener Contrato de DB').item.json.alertas) }}\n\nTEXTO DEL CONTRATO:\n{{ $('Obtener Contrato de DB').item.json.texto_extraido }}\n\nPREGUNTA DEL USUARIO:\n{{ $('Webhook Consulta Contrato').item.json.body.pregunta }}\n\nINSTRUCCIONES:\n1. Responde de manera clara y directa a la pregunta\n2. Fundamenta tu respuesta en la Ley 820 de 2003 cuando sea aplicable\n3. Si la pregunta se relaciona con el contrato específico, usa los datos proporcionados\n4. Si detectas algo problemático en la pregunta, advierte al usuario\n5. Proporciona pasos concretos si el usuario pregunta cómo proceder\n6. Usa un tono profesional pero accesible\n\nARTÍCULOS RELEVANTES DE LA LEY 820 DE 2003:\n- Art. 16: Prohibición de depósitos en dinero\n- Art. 20: Reajuste del canon (máximo IPC año anterior)\n- Art. 21: Mora en el pago del canon\n- Art. 22: Terminación por parte del arrendador (causales)\n- Art. 23: Terminación por parte del arrendatario (causales)  \n- Art. 24: Requisitos para terminación (preaviso 3 meses)\n- Art. 25: Indemnización por terminación anticipada\n\nRespóndele al usuario de forma conversacional, clara y profesional:"
+            }
+          ]
+        },
+        "options": {
+          "maxTokens": 2048,
+          "temperature": 0.5
+        }
+      },
+      "id": "claude-responder-consulta",
+      "name": "Claude - Responder Consulta",
+      "type": "@n8n/n8n-nodes-langchain.anthropic",
+      "typeVersion": 1,
+      "position": [960, 540],
+      "credentials": {
+        "anthropicApi": {
+          "id": "anthropic-credentials",
+          "name": "Anthropic API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO consultas_chat (\n  contrato_id,\n  pregunta,\n  respuesta,\n  created_at\n) VALUES (\n  '{{ $('Webhook Consulta Contrato').item.json.body.contrato_id }}',\n  '{{ $('Webhook Consulta Contrato').item.json.body.pregunta.replace(/'/g, \"''\") }}',\n  '{{ $json.content[0].text.replace(/'/g, \"''\").substring(0, 5000) }}',\n  NOW()\n)\nRETURNING id;",
+        "options": {}
+      },
+      "id": "postgres-guardar-consulta",
+      "name": "Guardar Consulta en DB",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [1200, 540],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-credentials",
+          "name": "PostgreSQL InmoLawyer"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {},
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"contrato_id\": \"{{ $('Webhook Consulta Contrato').item.json.body.contrato_id }}\",\n  \"pregunta\": \"{{ $('Webhook Consulta Contrato').item.json.body.pregunta }}\",\n  \"respuesta\": \"{{ $('Claude - Responder Consulta').item.json.content[0].text.replace(/\"/g, '\\\\\"').replace(/\\n/g, '\\\\n') }}\",\n  \"timestamp\": \"{{ new Date().toISOString() }}\"\n}"
+      },
+      "id": "respond-consulta",
+      "name": "Responder Consulta",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1440, 540]
+    },
+    {
+      "parameters": {
+        "options": {},
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": false,\n  \"error\": \"Contrato no encontrado\",\n  \"contrato_id\": \"{{ $('Webhook Consulta Contrato').item.json.body.contrato_id }}\",\n  \"message\": \"No se encontró un contrato con el ID proporcionado. Verifique que el ID sea correcto.\"\n}",
+        "responseCode": 404
+      },
+      "id": "respond-no-encontrado",
+      "name": "Responder No Encontrado",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [960, 720]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "calcular-incremento",
+        "responseMode": "responseNode",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "id": "webhook-incremento",
+      "name": "Webhook Calcular Incremento",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 920],
+      "webhookId": "calcular-incremento-webhook"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Calculadora de incremento de arriendo según IPC (Art. 20 Ley 820)\nconst input = $input.first().json.body;\n\n// IPC histórico de Colombia (últimos años)\n// Fuente: DANE - Estos valores deben actualizarse anualmente\nconst ipcHistorico = {\n  2024: 5.20,  // IPC 2024 (provisional/ejemplo)\n  2023: 9.28,  // IPC 2023\n  2022: 13.12, // IPC 2022\n  2021: 5.62,  // IPC 2021\n  2020: 1.61,  // IPC 2020\n  2019: 3.80,  // IPC 2019\n  2018: 3.18,  // IPC 2018\n  2017: 4.09,  // IPC 2017\n  2016: 5.75,  // IPC 2016\n  2015: 6.77   // IPC 2015\n};\n\nconst canonActual = parseFloat(input.canon_actual) || 0;\nconst anioIncremento = parseInt(input.anio) || new Date().getFullYear();\nconst anioIPC = anioIncremento - 1; // El IPC del año anterior\n\n// Obtener IPC aplicable\nlet ipcAplicable = ipcHistorico[anioIPC];\nlet ipcFuente = 'DANE';\n\nif (!ipcAplicable) {\n  // Si no tenemos el IPC histórico, usar un valor estimado\n  ipcAplicable = 5.0; // Valor estimado conservador\n  ipcFuente = 'Estimado (IPC real no disponible)';\n}\n\n// Calcular nuevo canon\nconst incrementoPesos = Math.round(canonActual * (ipcAplicable / 100));\nconst nuevoCanon = canonActual + incrementoPesos;\n\n// Calcular fecha de aplicación\nconst fechaContrato = input.fecha_inicio_contrato;\nlet fechaIncrementoAplicable = null;\n\nif (fechaContrato) {\n  const fecha = new Date(fechaContrato);\n  fecha.setFullYear(anioIncremento);\n  fechaIncrementoAplicable = fecha.toISOString().split('T')[0];\n}\n\n// Validaciones adicionales\nconst alertas = [];\n\nif (input.incremento_propuesto) {\n  const incrementoPropuesto = parseFloat(input.incremento_propuesto);\n  const porcentajePropuesto = ((incrementoPropuesto - canonActual) / canonActual) * 100;\n  \n  if (porcentajePropuesto > ipcAplicable) {\n    alertas.push({\n      tipo: 'danger',\n      mensaje: `El incremento propuesto (${porcentajePropuesto.toFixed(2)}%) excede el IPC permitido (${ipcAplicable}%). Esto es ILEGAL según el Art. 20 de la Ley 820.`,\n      diferencia: porcentajePropuesto - ipcAplicable,\n      exceso_pesos: incrementoPropuesto - nuevoCanon\n    });\n  }\n}\n\n// Formatear valores para Colombia\nconst formatearPesos = (valor) => {\n  return new Intl.NumberFormat('es-CO', {\n    style: 'currency',\n    currency: 'COP',\n    minimumFractionDigits: 0,\n    maximumFractionDigits: 0\n  }).format(valor);\n};\n\nreturn {\n  json: {\n    success: true,\n    calculo: {\n      canon_actual: canonActual,\n      canon_actual_formateado: formatearPesos(canonActual),\n      ipc_aplicable: ipcAplicable,\n      ipc_anio: anioIPC,\n      ipc_fuente: ipcFuente,\n      incremento_maximo_porcentaje: ipcAplicable,\n      incremento_maximo_pesos: incrementoPesos,\n      incremento_maximo_formateado: formatearPesos(incrementoPesos),\n      nuevo_canon_maximo: nuevoCanon,\n      nuevo_canon_formateado: formatearPesos(nuevoCanon),\n      fecha_aplicacion: fechaIncrementoAplicable\n    },\n    base_legal: {\n      articulo: 'Artículo 20',\n      ley: 'Ley 820 de 2003',\n      texto: 'El precio mensual del arrendamiento no podrá exceder el uno por ciento (1%) del valor comercial del inmueble, o de la parte de él que se dé en arriendo. El arrendamiento fijado en el contrato se reajustará cada doce (12) meses de ejecución del contrato, en una proporción que no sea superior al ciento por ciento (100%) del incremento que haya tenido el índice de precios al consumidor en el año calendario inmediatamente anterior.'\n    },\n    alertas: alertas,\n    timestamp: new Date().toISOString()\n  }\n};"
+      },
+      "id": "code-calcular-incremento",
+      "name": "Calcular Incremento IPC",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 920]
+    },
+    {
+      "parameters": {
+        "options": {},
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}"
+      },
+      "id": "respond-incremento",
+      "name": "Responder Incremento",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [720, 920]
+    }
+  ],
+  "connections": {
+    "Webhook Analizar Contrato": {
+      "main": [
+        [
+          {
+            "node": "Extraer Datos del Contrato",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extraer Datos del Contrato": {
+      "main": [
+        [
+          {
+            "node": "Guardar Contrato en DB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar Contrato en DB": {
+      "main": [
+        [
+          {
+            "node": "Claude - Analizar Cláusulas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claude - Analizar Cláusulas": {
+      "main": [
+        [
+          {
+            "node": "Procesar Análisis Claude",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Procesar Análisis Claude": {
+      "main": [
+        [
+          {
+            "node": "Guardar Alertas en DB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar Alertas en DB": {
+      "main": [
+        [
+          {
+            "node": "Responder Análisis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook Consulta Contrato": {
+      "main": [
+        [
+          {
+            "node": "Obtener Contrato de DB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Obtener Contrato de DB": {
+      "main": [
+        [
+          {
+            "node": "¿Contrato Existe?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Contrato Existe?": {
+      "main": [
+        [
+          {
+            "node": "Claude - Responder Consulta",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Responder No Encontrado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claude - Responder Consulta": {
+      "main": [
+        [
+          {
+            "node": "Guardar Consulta en DB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar Consulta en DB": {
+      "main": [
+        [
+          {
+            "node": "Responder Consulta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook Calcular Incremento": {
+      "main": [
+        [
+          {
+            "node": "Calcular Incremento IPC",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calcular Incremento IPC": {
+      "main": [
+        [
+          {
+            "node": "Responder Incremento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "1",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "inmolawyer-instance"
+  },
+  "id": "inmolawyer-workflow",
+  "tags": [
+    {
+      "id": "legal-tech",
+      "name": "Legal Tech"
+    },
+    {
+      "id": "colombia",
+      "name": "Colombia"
+    }
+  ]
+}

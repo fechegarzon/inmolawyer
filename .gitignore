@@ -26,3 +26,17 @@ dist/
 # Logs
 *.log
 npm-debug.log*
+
+# IDE / AI agents
+.agent/
+.agents/
+.kiro/
+
+# Business docs (not code)
+*.docx
+*.pptx
+*.csv
+
+# Internal notes
+leads-apollo-scraping.md
+skills-lock.json
