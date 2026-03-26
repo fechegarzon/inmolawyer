@@ -16,7 +16,7 @@ export const CONFIG = {
 export const CONFIG_WOMPI = {
     publicKey: 'pub_prod_uohbfwCKYyrQ0LN3EuKK18cNE6gv5yL5',
     checkoutUrl: 'https://checkout.wompi.co/p/',
-    redirectUrl: 'https://inmolawyer.surge.sh/app.html',
+    redirectUrl: 'https://inmo.tools/inmolawyer/app',
     currency: 'COP',
     // Endpoint N8N que genera el integrity hash (secreto de integridad nunca va al frontend)
     integrityEndpoint: 'https://oqipslfzbeioakfllohm.supabase.co/functions/v1/wompi-integrity',

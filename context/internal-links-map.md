@@ -4,9 +4,9 @@
 
 | Página | URL | Indexable | Propósito |
 |---|---|---|---|
-| Landing | https://inmolawyer.surge.sh/ | ✅ Sí | Conversión, SEO principal |
-| App (analizador) | https://inmolawyer.surge.sh/app.html | ❌ noindex | SaaS — usuarios registrados |
-| Informe gremio demo | https://inmolawyer.surge.sh/informe-gremio-demo.html | ❓ Sin definir | B2B pitch — considerar noindex |
+| Landing | https://inmo.tools/inmolawyer/ | ✅ Sí | Conversión, SEO principal |
+| App (analizador) | https://inmo.tools/inmolawyer/app.html | ❌ noindex | SaaS — usuarios registrados |
+| Informe gremio demo | https://inmo.tools/inmolawyer/informe-gremio-demo.html | ❓ Sin definir | B2B pitch — considerar noindex |
 
 ## Páginas planeadas (roadmap SEO)
 
@@ -49,8 +49,8 @@ Landing (/)
 | Robots | /robots.txt | Directivas de rastreo |
 
 ## Google Search Console
-- Propiedad: https://inmolawyer.surge.sh/
-- Sitemap enviado: https://inmolawyer.surge.sh/sitemap.xml
+- Propiedad: https://inmo.tools/inmolawyer/
+- Sitemap enviado: https://inmo.tools/inmolawyer/sitemap.xml
 - Estado: Pendiente de verificación y envío inicial
 
 ## Notas de rastreo (robots.txt actual)
@@ -58,5 +58,5 @@ Landing (/)
 User-agent: *
 Allow: /
 Disallow: /app.html
-Sitemap: https://inmolawyer.surge.sh/sitemap.xml
+Sitemap: https://inmo.tools/inmolawyer/sitemap.xml
 ```
