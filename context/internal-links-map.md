@@ -53,6 +53,13 @@ Landing (/)
 - Sitemap enviado: https://inmo.tools/inmolawyer/sitemap.xml
 - Estado: Pendiente de verificación y envío inicial
 
+## Nota operativa de hosting
+
+- InmoLawyer vive bajo el subpath `/inmolawyer`.
+- El `robots.txt` que realmente consultan los crawlers debe existir en `https://inmo.tools/robots.txt`.
+- El archivo `https://inmo.tools/inmolawyer/robots.txt` sirve como referencia del micrositio, pero no reemplaza el root robots del dominio.
+- Si se quiere controlar indexación real del producto, el cambio debe replicarse en el proyecto raíz que sirve `inmo.tools`.
+
 ## Notas de rastreo (robots.txt actual)
 ```
 User-agent: *

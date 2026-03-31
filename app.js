@@ -9,6 +9,10 @@ import { initChat, resetChat } from './chat.js';
 import { updateStudiosCounter, showPricingModal, closePricingModal, initiateWompiCheckout, handleWompiReturn } from './payments.js';
 import { toggleAdminPanel, switchAdminTab, loadAdminData, loadUsersRegistry, filterUsers, exportUsersCSV, showUserQuestions, closeUserQuestionsModal, getAdminUsersPage } from './admin.js';
 
+function getAuth() {
+    return window.__INMO_AUTH__ || {};
+}
+
 // ===== Initialize App =====
 // Called by auth.js when user is authenticated
 
@@ -80,6 +84,7 @@ function showAppTab(tab) {
 // ===== Mis Contratos: Dashboard de historial =====
 
 async function loadMisContratos() {
+    const { currentUser, supabaseClient } = getAuth();
     if (!currentUser) return;
     const tbody   = document.getElementById('historialTbody');
     const emptyEl = document.getElementById('historialEmpty');
@@ -110,10 +115,10 @@ async function loadMisContratos() {
         const fecha = new Date(c.created_at).toLocaleDateString('es-CO', { day: '2-digit', month: 'short', year: 'numeric' });
         const score = c.score_riesgo ?? '—';
         const scoreClass = typeof score === 'number'
-            ? (score >= 70 ? 'score-badge-low' : score >= 40 ? 'score-badge-med' : 'score-badge-high')
+            ? (score >= 51 ? 'score-badge-high' : score >= 26 ? 'score-badge-med' : 'score-badge-low')
             : 'score-badge-med';
         const riesgoLabel = typeof score === 'number'
-            ? (score >= 70 ? 'Bajo' : score >= 40 ? 'Medio' : 'Alto')
+            ? (score >= 51 ? 'Alto' : score >= 26 ? 'Medio' : 'Bajo')
             : '—';
         return `<tr>
             <td>${fecha}</td>
@@ -150,7 +155,7 @@ async function downloadHistorialPDF(btn) {
 }
 
 // ===== Expose functions to window for onclick="" handlers in HTML =====
-// auth.js globals (currentUser, currentUserProfile, isAdmin, supabaseClient) remain as global <script> vars
+// auth.js exposes auth state through window.__INMO_AUTH__ for module consumers.
 
 window.initApp = initApp;
 window.updateStudiosCounter = updateStudiosCounter;
