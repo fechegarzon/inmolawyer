@@ -6,6 +6,10 @@ import { showSection, updateLoadingStep, showErrorBanner, hideErrorBanner, showT
 import { displayResults, setLastAnalysisData } from './results-renderer.js';
 import { decrementEstudios, hasEstudiosDisponibles, showSectionBlocked } from './payments.js';
 
+function getCurrentUser() {
+    return window.__INMO_AUTH__?.currentUser ?? null;
+}
+
 // ===== Lazy-load Helpers =====
 
 function loadScript(src) {
@@ -203,9 +207,8 @@ async function submitContract(file) {
     const formData = new FormData();
     formData.append('file', file);
 
-    // Incluir user_id para almacenar en Supabase
-    // currentUser is a global from auth.js
-    if (typeof currentUser !== 'undefined' && currentUser) {
+    const currentUser = getCurrentUser();
+    if (currentUser) {
         formData.append('user_id', currentUser.id);
         formData.append('user_email', currentUser.email);
     }
@@ -259,35 +262,32 @@ async function pollJobStatus(jobId) {
         console.log(`Poll #${attempt + 1} — job: ${jobId}`);
 
         try {
-            const { data: job, error: jobErr } = await supabaseClient
-                .from('job_queue')
-                .select('job_id, status, contrato_id')
-                .eq('job_id', jobId)
-                .single();
+            const response = await fetch(
+                `${CONFIG.N8N_BASE_URL + CONFIG.ENDPOINTS.STATUS}?jobId=${encodeURIComponent(jobId)}`
+            );
 
-            if (jobErr || !job) {
-                console.warn(`Poll #${attempt + 1} — job no encontrado aun`);
-                continue;
+            if (!response.ok) {
+                throw new Error(`Error consultando estado: ${response.status}`);
             }
 
-            console.log(`Poll #${attempt + 1} — status: ${job.status}`);
+            const payload = await response.json();
+            console.log(`Poll #${attempt + 1} — status: ${payload.status}`);
 
-            if (job.status === 'error') {
+            if (payload.status === 'error') {
                 throw new Error('Error al procesar el contrato en el servidor');
             }
 
-            if (job.status === 'completed' && job.contrato_id) {
-                const { data: contrato, error: cErr } = await supabaseClient
-                    .from('contratos')
-                    .select('*')
-                    .eq('id', job.contrato_id)
-                    .single();
+            if (payload.status === 'completed' && payload.result) {
+                const result = payload.result;
+                const fullResult = result.resultado_json
+                    ? { ...result, ...result.resultado_json }
+                    : result;
 
-                if (!cErr && contrato) {
-                    // Merge resultado_json (full analysis data) into top-level
-                    const rj = contrato.resultado_json || {};
-                    return { ...contrato, ...rj, success: true, contratoId: contrato.id };
-                }
+                return {
+                    ...fullResult,
+                    success: true,
+                    contratoId: fullResult.contratoId || fullResult.contrato_id || fullResult.id
+                };
             }
 
         } catch (err) {

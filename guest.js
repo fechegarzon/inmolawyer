@@ -5,7 +5,7 @@ const GUEST_CONFIG = {
     N8N_BASE: 'https://oqipslfzbeioakfllohm.supabase.co/functions/v1',
     WOMPI_PUBLIC_KEY: 'pub_prod_uohbfwCKYyrQ0LN3EuKK18cNE6gv5yL5',
     WOMPI_CHECKOUT_URL: 'https://checkout.wompi.co/p/',
-    WOMPI_REDIRECT_URL: 'https://inmolawyer.surge.sh',
+    WOMPI_REDIRECT_URL: 'https://inmo.tools/inmolawyer',
     ANALYSIS_PRICE: 4990000, // $49.900 COP en centavos
     POLL_INTERVAL_MS: 3000,
     POLL_MAX_ATTEMPTS: 30   // 90 segundos máximo

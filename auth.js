@@ -10,7 +10,7 @@ const CONFIG_AUTH = {
     },
     whatsapp: {
         // Número del bot de WhatsApp Business (sin +, formato internacional)
-        phoneNumber: '573337124882'
+        phoneNumber: '573011848771'
     }
 };
 
@@ -24,6 +24,22 @@ function isAdmin() {
 let currentUser = null;
 let currentUserProfile = null;
 let appInitialized = false;
+
+function syncAuthBridge() {
+    window.__INMO_AUTH__ = {
+        supabaseClient,
+        currentUser,
+        currentUserProfile,
+        isAdmin
+    };
+
+    window.supabaseClient = supabaseClient;
+    window.currentUser = currentUser;
+    window.currentUserProfile = currentUserProfile;
+    window.isAdmin = isAdmin;
+}
+
+syncAuthBridge();
 
 // ===== Rate limit protection (client-side) =====
 const _authAttempts = {};
@@ -92,10 +108,12 @@ async function loadCurrentUserProfile() {
                 .single();
             if (createErr) throw createErr;
             currentUserProfile = created;
+            syncAuthBridge();
             return created;
         }
 
         currentUserProfile = data;
+        syncAuthBridge();
         return data;
     } catch (err) {
         console.error('Error cargando perfil:', err);
@@ -118,11 +136,13 @@ async function initAuth() {
 
     supabaseClient.auth.onAuthStateChange(async (event, session) => {
         currentUser = session?.user ?? null;
+        syncAuthBridge();
         if (session) {
             await showApp();
         } else {
             appInitialized = false;
             currentUserProfile = null;
+            syncAuthBridge();
             showAuth();
         }
     });
@@ -130,6 +150,7 @@ async function initAuth() {
     const { data: { session } } = await supabaseClient.auth.getSession();
     if (session) {
         currentUser = session.user;
+        syncAuthBridge();
         await showApp();
     } else {
         showAuth();
@@ -174,11 +195,11 @@ function _renderApp() {
 
     if (!appInitialized) {
         appInitialized = true;
-        if (typeof initApp === 'function') initApp();
+        if (typeof window.initApp === 'function') window.initApp();
     }
 
     // Actualizar contador de estudios
-    if (typeof updateStudiosCounter === 'function') updateStudiosCounter();
+    if (typeof window.updateStudiosCounter === 'function') window.updateStudiosCounter();
 
     // Verificar si el usuario ya vinculó WhatsApp
     checkAndShowWhatsAppBanner();
@@ -210,6 +231,7 @@ async function acceptTerms() {
         if (currentUserProfile) {
             currentUserProfile.tc_aceptados = true;
             currentUserProfile.tc_aceptados_at = new Date().toISOString();
+            syncAuthBridge();
         }
 
         document.getElementById('tcModal').style.display = 'none';

@@ -4,19 +4,23 @@
 import { CONFIG_WOMPI } from './config.js';
 import { showToast } from './ui-helpers.js';
 
+function getAuth() {
+    return window.__INMO_AUTH__ || {};
+}
+
 // ===== Freemium: Control de estudios =====
 
 export function updateStudiosCounter() {
+    const { currentUserProfile, isAdmin } = getAuth();
     const el = document.getElementById('estudiosCounter');
     if (!el) return;
 
-    // Admin no ve el contador — isAdmin() is global from auth.js
-    if (isAdmin()) {
+    if (typeof isAdmin === 'function' && isAdmin()) {
         el.style.display = 'none';
         return;
     }
 
-    const profile = (typeof currentUserProfile !== 'undefined') ? currentUserProfile : null;
+    const profile = currentUserProfile ?? null;
     if (!profile) { el.style.display = 'none'; return; }
 
     const restantes = profile.estudios_restantes ?? 5;
@@ -34,8 +38,9 @@ export function updateStudiosCounter() {
 }
 
 export async function decrementEstudios() {
-    if (isAdmin()) return;
-    const profile = (typeof currentUserProfile !== 'undefined') ? currentUserProfile : null;
+    const { currentUser, currentUserProfile, isAdmin, supabaseClient } = getAuth();
+    if (typeof isAdmin === 'function' && isAdmin()) return;
+    const profile = currentUserProfile ?? null;
     if (!profile) return;
 
     const nuevos = Math.max(0, (profile.estudios_restantes ?? 0) - 1);
@@ -50,8 +55,9 @@ export async function decrementEstudios() {
 }
 
 export function hasEstudiosDisponibles() {
-    if (isAdmin()) return true;
-    const profile = (typeof currentUserProfile !== 'undefined') ? currentUserProfile : null;
+    const { currentUserProfile, isAdmin } = getAuth();
+    if (typeof isAdmin === 'function' && isAdmin()) return true;
+    const profile = currentUserProfile ?? null;
     if (!profile) return false;
     return (profile.estudios_restantes ?? 0) > 0;
 }
@@ -73,7 +79,7 @@ export function showPricingModal() {
     if (CONFIG_WOMPI.publicKey.includes('REPLACE')) {
         showToast('Sistema de pagos en configuracion. Te contactamos por WhatsApp.', 'info');
         if (typeof plausible !== 'undefined') plausible('whatsapp_cta_clicked', { props: { source: 'payments_fallback' } });
-        window.open('https://wa.me/573337124882?text=Hola%2C%20quiero%20comprar%20estudios%20en%20InmoLawyer', '_blank');
+        window.open('https://wa.me/573011848771?text=Hola%2C%20quiero%20comprar%20estudios%20en%20InmoLawyer', '_blank');
         return;
     }
 
@@ -87,10 +93,11 @@ export function closePricingModal() {
 }
 
 function renderPricingPlans() {
+    const { currentUser } = getAuth();
     const container = document.getElementById('pricingPlansContainer');
     if (!container) return;
 
-    const userId = (typeof currentUser !== 'undefined' && currentUser)
+    const userId = currentUser
         ? currentUser.id.replace(/-/g, '').substring(0, 8)
         : 'anon';
 

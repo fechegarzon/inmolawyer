@@ -5,6 +5,10 @@ import { CONFIG } from './config.js';
 import { showToast } from './ui-helpers.js';
 import { getCurrentContractId } from './upload.js';
 
+function getAuth() {
+    return window.__INMO_AUTH__ || {};
+}
+
 // ===== State =====
 
 const chatQuestionsUsed = {}; // { [contractId]: true } — 1 pregunta por contrato
@@ -49,10 +53,11 @@ async function sendChatMessage() {
     }
     chatRateLimit.lastSent = now;
 
+    const { currentUser, currentUserProfile, isAdmin } = getAuth();
+
     // Limite freemium: 1 pregunta por contrato
-    // isAdmin and currentUserProfile are globals from auth.js
-    if (!isAdmin() && currentContractId && chatQuestionsUsed[currentContractId]) {
-        const profile = (typeof currentUserProfile !== 'undefined') ? currentUserProfile : null;
+    if (!(typeof isAdmin === 'function' && isAdmin()) && currentContractId && chatQuestionsUsed[currentContractId]) {
+        const profile = currentUserProfile ?? null;
         const plan = profile?.plan ?? 'freemium';
         if (plan === 'freemium') {
             showToast('En el plan gratuito solo puedes hacer 1 pregunta por contrato.', 'warning');
@@ -75,7 +80,7 @@ async function sendChatMessage() {
             body: JSON.stringify({
                 contratoId: currentContractId,
                 pregunta: message,
-                user_id: (typeof currentUser !== 'undefined' && currentUser) ? currentUser.id : null
+                user_id: currentUser ? currentUser.id : null
             })
         });
 

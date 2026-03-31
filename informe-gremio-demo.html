@@ -576,7 +576,7 @@
   <button class="cta-btn" onclick="window.location.href='mailto:hola@inmolawyer.co?subject=Interés Paquete Corporate InmoLawyer'">
     Solicitar demostración corporativa →
   </button>
-  <div class="cta-contact">hola@inmolawyer.co &nbsp;·&nbsp; inmolawyer.surge.sh &nbsp;·&nbsp; Bogotá, Colombia</div>
+  <div class="cta-contact">hola@inmolawyer.co &nbsp;·&nbsp; inmo.tools/inmolawyer &nbsp;·&nbsp; Bogotá, Colombia</div>
 </div>
 
 </div><!-- /container -->
@@ -1409,7 +1409,7 @@ window.downloadPPT = async function() {
       s.addText(ttl,{x:0.4,y:0.25,w:9,h:0.28,fontSize:14,bold:true,color:CL.sl});
     };
     const foot=(s,n)=>{
-      s.addText('InmoLawyer · Estudio Simulado 2025 · inmolawyer.surge.sh',{x:0.4,y:5.32,w:8,h:0.22,fontSize:7.5,color:CL.slL});
+      s.addText('InmoLawyer · Estudio Simulado 2025 · inmo.tools/inmolawyer',{x:0.4,y:5.32,w:8,h:0.22,fontSize:7.5,color:CL.slL});
       s.addText(`${n}/${N}`,{x:9.0,y:5.32,w:0.85,h:0.22,fontSize:8,color:CL.slL,align:'right'});
     };
     const ec=['DC2626','F97316','EAB308','22C55E','16A34A','15803D'];
@@ -1594,7 +1594,7 @@ window.downloadPPT = async function() {
         s.addText(b.d,{x:bx+0.15,y:3.3,w:2.55,h:0.6,fontSize:8.5,color:CL.wh,transparency:40,wrap:true});});
       s.addShape('roundRect',{x:2.8,y:4.18,w:4.4,h:0.56,fill:{color:CL.green},line:{type:'none'},rectRadius:0.08});
       s.addText('Solicitar demostración corporativa →',{x:2.8,y:4.18,w:4.4,h:0.56,fontSize:12,bold:true,color:CL.wh,align:'center',valign:'middle'});
-      s.addText('hola@inmolawyer.co   ·   inmolawyer.surge.sh   ·   Bogotá, Colombia',{x:1.0,y:4.88,w:8,h:0.26,fontSize:9,color:CL.wh,transparency:55,align:'center'});
+      s.addText('hola@inmolawyer.co   ·   inmo.tools/inmolawyer   ·   Bogotá, Colombia',{x:1.0,y:4.88,w:8,h:0.26,fontSize:9,color:CL.wh,transparency:55,align:'center'});
       foot(s,13);}
 
     await pptx.writeFile({fileName:'InmoLawyer-Estudio-Simulado-2025.pptx'});

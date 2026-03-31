@@ -19,7 +19,7 @@ por:
 ```javascript
 publicKey: 'pub_prod_TU_LLAVE_REAL_AQUI',
 ```
-4. Deployar: `npx surge . inmolawyer.surge.sh`
+4. Deployar en el proyecto real de Vercel (`inmotools-hub`) para publicar en `https://inmo.tools/inmolawyer`
 
 ---
 
@@ -187,7 +187,7 @@ Ejemplos:
 3. Se abre modal con 3 planes
 4. Usuario elige un plan → formulario GET → redirige a `checkout.wompi.co/p/`
 5. Usuario completa el pago en Wompi (tarjeta, PSE, Nequi, etc.)
-6. Wompi redirige al usuario a `https://inmolawyer.surge.sh/app.html`
+6. Wompi redirige al usuario a `https://inmo.tools/inmolawyer/app`
 7. App detecta `?id=` en la URL → muestra toast "¡Pago recibido!"
 8. Wompi envía webhook a N8N en paralelo
 9. N8N valida → actualiza `estudios_restantes` y `plan` en Supabase
@@ -201,4 +201,4 @@ Ejemplos:
 - [ ] Configurar webhook URL en Wompi dashboard
 - [ ] Crear workflow en N8N con los nodes del Paso 3
 - [ ] Testear con pago de prueba (Wompi provee tarjetas de test)
-- [ ] Deploy final: `npx surge . inmolawyer.surge.sh`
+- [ ] Deploy final en Vercel (`inmotools-hub`) con dominio `https://inmo.tools/inmolawyer`

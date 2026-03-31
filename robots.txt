@@ -2,4 +2,7 @@ User-agent: *
 Allow: /
 Disallow: /app.html
 
-Sitemap: https://inmolawyer.surge.sh/sitemap.xml
+Sitemap: https://inmo.tools/inmolawyer/sitemap.xml
+
+# Nota: este proyecto se publica bajo /inmolawyer.
+# El robots efectivo para crawlers debe exponerse tambien en https://inmo.tools/robots.txt.
